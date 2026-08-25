@@ -1,10 +1,15 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 import { toast } from "sonner";
 
 import logo from "@/assets/samaa-logo.png.asset.json";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
-import { lovable } from "@/integrations/lovable/index";
+import { EmailNotAllowedError, isEmailAllowed } from "@/integrations/firebase/allowlist";
+import { getFirebaseAuth } from "@/integrations/firebase/client";
+import { ensureUserBootstrap } from "@/integrations/firebase/bootstrap";
+import { mapFirebaseError } from "@/integrations/firebase/helpers";
 import { useSession } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/auth")({
@@ -22,29 +27,73 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(false);
   const navigate = useNavigate();
   const { data: session, isFetched } = useSession();
 
+  // Only redirect an *existing* allowed session (e.g. refresh). Never during an in-progress sign-in.
   useEffect(() => {
-    if (isFetched && session) navigate({ to: "/dashboard", replace: true });
-  }, [isFetched, session, navigate]);
+    if (!isFetched || !session || loading) return;
+
+    let cancelled = false;
+    setCheckingSession(true);
+
+    void (async () => {
+      try {
+        const allowed = await isEmailAllowed(session.email);
+        if (cancelled) return;
+        if (!allowed) {
+          await signOut(getFirebaseAuth());
+          toast.error(new EmailNotAllowedError().message);
+          return;
+        }
+        navigate({ to: "/dashboard", replace: true });
+      } finally {
+        if (!cancelled) setCheckingSession(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isFetched, session, navigate, loading]);
 
   async function signIn() {
     setLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
+    const auth = getFirebaseAuth();
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+      const result = await signInWithPopup(auth, provider);
+
+      const allowed = await isEmailAllowed(result.user.email);
+      if (!allowed) {
+        await signOut(auth);
+        throw new EmailNotAllowedError();
+      }
+
+      await ensureUserBootstrap(result.user);
+      navigate({ to: "/dashboard", replace: true });
+    } catch (e) {
+      if (auth.currentUser) {
+        try {
+          await signOut(auth);
+        } catch {
+          /* ignore */
+        }
+      }
+      toast.error(mapFirebaseError(e).message || "تعذّر تسجيل الدخول، حاول مرة أخرى.");
       setLoading(false);
-      toast.error("تعذّر تسجيل الدخول، حاول مرة أخرى.");
-      return;
     }
-    if (result.redirected) return;
-    navigate({ to: "/dashboard", replace: true });
   }
 
+  const busy = loading || checkingSession;
+
   return (
-    <div className="grid-glow flex min-h-screen items-center justify-center px-4">
+    <div className="grid-glow relative flex min-h-screen items-center justify-center px-4">
+      <div className="absolute start-4 top-4 md:start-6 md:top-6">
+        <ThemeToggle />
+      </div>
       <div className="panel w-full max-w-md p-8 text-center">
         <img src={logo.url} alt="شعار Samaa Dev" className="mx-auto h-16 w-16 object-contain" />
         <h1 className="mt-6 text-2xl font-bold">
@@ -52,10 +101,10 @@ function AuthPage() {
         </h1>
         <p className="mt-1 text-xs tracking-[0.25em] text-muted-foreground">MANAGEMENT SYSTEM</p>
         <p className="mt-6 text-sm text-muted-foreground">
-          الدخول متاح لأعضاء فريق الوكالة فقط عبر حساب Google.
+          الدخول متاح فقط لأعضاء الفريق المصرّح لهم عبر حساب Google.
         </p>
-        <Button className="mt-7 w-full" size="lg" onClick={signIn} disabled={loading}>
-          {loading ? "جارٍ التحويل…" : "متابعة بحساب Google"}
+        <Button className="mt-7 w-full" size="lg" onClick={signIn} disabled={busy}>
+          {busy ? "جارٍ التحقق…" : "متابعة بحساب Google"}
         </Button>
       </div>
     </div>

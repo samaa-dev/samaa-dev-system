@@ -12,7 +12,9 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { onAuthStateChanged } from "firebase/auth";
+import { getFirebaseAuth } from "@/integrations/firebase/client";
+import { THEME_BOOT_SCRIPT } from "@/hooks/use-theme";
 
 function NotFoundComponent() {
   return (
@@ -82,7 +84,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Samaa Dev — نظام إدارة الوكالة" },
       {
         name: "description",
-        content: "نظام إدارة داخلي لوكالة Samaa Dev: المشاريع، المهام، السبرنتات والحسابات المالية.",
+        content: "نظام إدارة داخلي لوكالة Samaa Dev: المشاريع، المهام، الدورات والحسابات المالية.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -106,9 +108,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="ar" dir="rtl" className="dark">
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
         <HeadContent />
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
       </head>
       <body>
         {children}
@@ -123,12 +126,20 @@ function RootComponent() {
   const router = useRouter();
 
   useEffect(() => {
-    const { data } = supabase.auth.onAuthStateChange((event) => {
-      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+    let previousUid: string | null | undefined = undefined;
+    const unsub = onAuthStateChanged(getFirebaseAuth(), (user) => {
+      const nextUid = user?.uid ?? null;
+      if (previousUid === undefined) {
+        previousUid = nextUid;
+        return;
+      }
+      if (previousUid === nextUid) return;
+      previousUid = nextUid;
       router.invalidate();
-      if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
+      if (nextUid) queryClient.invalidateQueries();
+      else queryClient.clear();
     });
-    return () => data.subscription.unsubscribe();
+    return () => unsub();
   }, [router, queryClient]);
 
   return (

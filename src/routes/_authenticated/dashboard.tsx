@@ -1,14 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Activity,
-  AlertTriangle,
-  CheckCircle2,
-  FolderKanban,
-  TrendingDown,
-  TrendingUp,
-  Wallet,
-} from "lucide-react";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -24,12 +16,14 @@ import {
 } from "recharts";
 
 import { AppShell } from "@/components/layout/AppShell";
+import { KpiSettingsPanel } from "@/components/KpiSettingsPanel";
 import { StatCard } from "@/components/StatCard";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Progress } from "@/components/ui/progress";
 import { useCurrentUser } from "@/hooks/use-auth";
 import {
   clientsQuery,
+  kpiSettingsQuery,
   milestonesQuery,
   projectProgress,
   projectsQuery,
@@ -38,8 +32,14 @@ import {
   transactionsQuery,
 } from "@/lib/data";
 import {
+  KPI_CATALOG,
+  mergeKpiSettings,
+  resolveKpiDisplay,
+  targetProgress,
+  type KpiContext,
+} from "@/lib/kpis";
+import {
   daysLeft,
-  formatCurrency,
   formatDate,
   projectStatusLabels,
   statusTone,
@@ -68,12 +68,16 @@ function DashboardPage() {
   const { data: clients = [] } = useQuery(clientsQuery());
   const { data: sprints = [] } = useQuery(sprintsQuery());
   const { data: transactions = [] } = useQuery({ ...transactionsQuery(), enabled: Boolean(me?.isStaff) });
+  const { data: kpiSettings } = useQuery(kpiSettingsQuery());
 
-  const income = transactions.filter((t) => t.kind === "income" && t.is_paid).reduce((s, t) => s + Number(t.amount), 0);
-  const expenses = transactions.filter((t) => t.kind === "expense").reduce((s, t) => s + Number(t.amount), 0);
-  const outstanding = transactions
-    .filter((t) => t.kind === "income" && !t.is_paid)
-    .reduce((s, t) => s + Number(t.amount), 0);
+  const kpiCtx: KpiContext = { me, projects, tasks, sprints, clients, transactions };
+  const widgets = mergeKpiSettings(kpiSettings ?? undefined).filter((w) => {
+    if (!w.enabled) return false;
+    const catalog = KPI_CATALOG.find((c) => c.id === w.id);
+    if (!catalog) return false;
+    if (catalog.staffOnly && !me?.isStaff) return false;
+    return true;
+  });
 
   const activeProjects = projects.filter((p) => ["active", "in_review"].includes(p.status));
   const myTasks = tasks.filter((t) => t.assignee_id === me?.id && t.status !== "done");
@@ -102,21 +106,27 @@ function DashboardPage() {
     <AppShell
       title={`مرحباً ${me?.fullName?.split(" ")[0] ?? ""}`}
       description="نظرة عامة على أداء الوكالة اليوم"
+      actions={me?.isStaff ? <KpiSettingsPanel /> : undefined}
     >
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="مشاريع نشطة" value={String(activeProjects.length)} hint={`${projects.length} مشروع إجمالاً`} icon={FolderKanban} />
-        <StatCard label="مهامي المفتوحة" value={String(myTasks.length)} hint={`${tasks.filter((t) => t.status === "done").length} مهمة مكتملة للفريق`} icon={Activity} tone="info" />
-        {me?.isStaff ? (
-          <>
-            <StatCard label="صافي الربح" value={formatCurrency(income - expenses)} hint={`إيرادات ${formatCurrency(income)}`} icon={income - expenses >= 0 ? TrendingUp : TrendingDown} tone={income - expenses >= 0 ? "success" : "destructive"} />
-            <StatCard label="دفعات غير محصّلة" value={formatCurrency(outstanding)} hint={`${clients.length} عميل`} icon={Wallet} tone="warning" />
-          </>
-        ) : (
-          <>
-            <StatCard label="سبرنتات نشطة" value={String(sprints.filter((s) => s.status === "active").length)} icon={Activity} tone="info" />
-            <StatCard label="عملاء" value={String(clients.length)} icon={Wallet} tone="success" />
-          </>
-        )}
+        {widgets.map((w) => {
+          const catalog = KPI_CATALOG.find((c) => c.id === w.id)!;
+          const { value, display, hint, tone } = resolveKpiDisplay(w, catalog, kpiCtx);
+          const progress = targetProgress(value, w.target);
+          return (
+            <StatCard
+              key={w.id}
+              label={w.label?.trim() || catalog.defaultLabel}
+              value={display}
+              hint={hint}
+              icon={catalog.icon}
+              tone={tone}
+              target={w.target}
+              targetProgress={progress}
+              showTargetBar={w.show_target_bar && progress != null}
+            />
+          );
+        })}
       </div>
 
       {lateProjects.length > 0 ? (

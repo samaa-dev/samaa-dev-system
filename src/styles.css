@@ -6,8 +6,8 @@
 
 /*
  * Samaa Dev — internal management system design system.
- * Brand: purple #7C3AED → #5B21B6, dark navy #0F172A, slate #64748B.
- * All colors are oklch semantic tokens. Never hardcode colors in components.
+ * Brand: purple #7C3AED → #5B21B6, slate neutrals.
+ * Light = default (:root). Dark = .dark on <html>.
  */
 
 @theme inline {
@@ -64,14 +64,72 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --shadow-glow: 0 0 0 1px oklch(0.55 0.24 292 / 0.35), 0 18px 45px -20px oklch(0.55 0.24 292 / 0.55);
-  --shadow-panel: 0 20px 45px -30px oklch(0.12 0.04 265 / 0.9);
+  --shadow-glow: var(--shadow-glow-token);
+  --shadow-panel: var(--shadow-panel-token);
 }
 
 :root {
   --radius: 0.75rem;
+  color-scheme: light;
 
-  /* Dark navy canvas — this system is dark-first by design. */
+  /* Bright day mode — cool white surfaces, deep ink text, brand violet. */
+  --background: oklch(0.985 0.008 260);
+  --foreground: oklch(0.22 0.03 265);
+  --surface: oklch(1 0.004 260);
+  --surface-foreground: oklch(0.22 0.03 265);
+  --card: oklch(1 0.004 260);
+  --card-foreground: oklch(0.22 0.03 265);
+  --popover: oklch(1 0.004 260);
+  --popover-foreground: oklch(0.22 0.03 265);
+
+  --primary: oklch(0.5 0.24 293);
+  --primary-foreground: oklch(0.99 0.005 280);
+  --secondary: oklch(0.94 0.015 265);
+  --secondary-foreground: oklch(0.28 0.03 265);
+  --muted: oklch(0.955 0.01 260);
+  --muted-foreground: oklch(0.5 0.025 258);
+  --accent: oklch(0.94 0.035 292);
+  --accent-foreground: oklch(0.35 0.12 292);
+
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(0.99 0.005 250);
+  --success: oklch(0.55 0.14 160);
+  --success-foreground: oklch(0.99 0.005 160);
+  --warning: oklch(0.72 0.15 78);
+  --warning-foreground: oklch(0.28 0.05 78);
+  --info: oklch(0.55 0.17 262);
+  --info-foreground: oklch(0.99 0.005 250);
+
+  --border: oklch(0.88 0.015 260);
+  --input: oklch(0.9 0.012 260);
+  --ring: oklch(0.5 0.24 293);
+
+  --chart-1: oklch(0.5 0.24 293);
+  --chart-2: oklch(0.55 0.14 160);
+  --chart-3: oklch(0.55 0.17 262);
+  --chart-4: oklch(0.72 0.15 78);
+  --chart-5: oklch(0.6 0.18 20);
+
+  --sidebar: oklch(0.99 0.006 265);
+  --sidebar-foreground: oklch(0.26 0.03 265);
+  --sidebar-primary: oklch(0.5 0.24 293);
+  --sidebar-primary-foreground: oklch(0.99 0.005 280);
+  --sidebar-accent: oklch(0.94 0.03 292);
+  --sidebar-accent-foreground: oklch(0.35 0.12 292);
+  --sidebar-border: oklch(0.9 0.012 260);
+  --sidebar-ring: oklch(0.5 0.24 293);
+
+  --shadow-glow-token: 0 0 0 1px oklch(0.5 0.24 292 / 0.18), 0 18px 40px -22px oklch(0.5 0.2 292 / 0.28);
+  --shadow-panel-token: 0 12px 32px -18px oklch(0.35 0.04 265 / 0.22);
+  --glow-a: oklch(0.55 0.2 293 / 0.14);
+  --glow-b: oklch(0.6 0.14 262 / 0.1);
+  --brand-text-a: oklch(0.48 0.22 293);
+  --brand-text-b: oklch(0.45 0.16 262);
+}
+
+.dark {
+  color-scheme: dark;
+
   --background: oklch(0.183 0.033 265.5);
   --foreground: oklch(0.975 0.006 250);
   --surface: oklch(0.223 0.032 264);
@@ -117,10 +175,13 @@
   --sidebar-accent-foreground: oklch(0.97 0.008 280);
   --sidebar-border: oklch(0.98 0.01 260 / 0.08);
   --sidebar-ring: oklch(0.554 0.245 293.5);
-}
 
-.dark {
-  color-scheme: dark;
+  --shadow-glow-token: 0 0 0 1px oklch(0.55 0.24 292 / 0.35), 0 18px 45px -20px oklch(0.55 0.24 292 / 0.55);
+  --shadow-panel-token: 0 20px 45px -30px oklch(0.12 0.04 265 / 0.9);
+  --glow-a: oklch(0.554 0.245 293.5 / 0.22);
+  --glow-b: oklch(0.62 0.19 262 / 0.16);
+  --brand-text-a: oklch(0.68 0.2 293);
+  --brand-text-b: oklch(0.72 0.15 262);
 }
 
 @layer base {
@@ -129,6 +190,10 @@
   }
 
   html {
+    color-scheme: light;
+  }
+
+  html.dark {
     color-scheme: dark;
   }
 
@@ -159,8 +224,8 @@
 @utility brand-gradient-text {
   background-image: linear-gradient(
     120deg,
-    oklch(0.68 0.2 293) 0%,
-    oklch(0.72 0.15 262) 100%
+    var(--brand-text-a) 0%,
+    var(--brand-text-b) 100%
   );
   background-clip: text;
   color: transparent;
@@ -175,6 +240,6 @@
 
 @utility grid-glow {
   background-image:
-    radial-gradient(circle at 15% 0%, oklch(0.554 0.245 293.5 / 0.22), transparent 45%),
-    radial-gradient(circle at 85% 10%, oklch(0.62 0.19 262 / 0.16), transparent 50%);
+    radial-gradient(circle at 15% 0%, var(--glow-a), transparent 45%),
+    radial-gradient(circle at 85% 10%, var(--glow-b), transparent 50%);
 }

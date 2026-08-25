@@ -11,13 +11,14 @@ import {
 
 import logo from "@/assets/samaa-logo.png.asset.json";
 import { cn } from "@/lib/utils";
+import { sprintUiLabels } from "@/lib/samaa";
 import { useCurrentUser } from "@/hooks/use-auth";
 
 const items = [
   { title: "لوحة القيادة", url: "/dashboard", icon: LayoutDashboard, staffOnly: false },
   { title: "المشاريع", url: "/projects", icon: FolderKanban, staffOnly: false },
   { title: "المهام", url: "/tasks", icon: ListChecks, staffOnly: false },
-  { title: "السبرنتات", url: "/sprints", icon: Timer, staffOnly: false },
+  { title: sprintUiLabels.module, url: "/sprints", icon: Timer, staffOnly: false },
   { title: "الحسابات المالية", url: "/finance", icon: Wallet, staffOnly: true },
   { title: "العملاء", url: "/clients", icon: Users, staffOnly: false },
   { title: "الفريق", url: "/team", icon: UserCog, staffOnly: false },

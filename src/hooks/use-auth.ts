@@ -1,15 +1,36 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { Session } from "@supabase/supabase-js";
+import { onAuthStateChanged, type User } from "firebase/auth";
 
-import { supabase } from "@/integrations/supabase/client";
+import { getFirebaseAuth } from "@/integrations/firebase/client";
+import {
+  ensureUserBootstrap,
+  getUserProfile,
+  getUserRoles,
+} from "@/integrations/firebase/bootstrap";
+
+/** Resolves once Firebase Auth finishes the first auth check. */
+export function useAuthUser() {
+  const [user, setUser] = useState<User | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    return onAuthStateChanged(getFirebaseAuth(), (next) => {
+      setUser(next);
+      setReady(true);
+    });
+  }, []);
+
+  return { user, ready };
+}
 
 export function useSession() {
+  const { user, ready } = useAuthUser();
+
   return useQuery({
-    queryKey: ["auth", "session"],
-    queryFn: async (): Promise<Session | null> => {
-      const { data } = await supabase.auth.getSession();
-      return data.session ?? null;
-    },
+    queryKey: ["auth", "session", user?.uid ?? "anon"],
+    enabled: ready,
+    queryFn: async (): Promise<User | null> => user,
     staleTime: 30_000,
   });
 }
@@ -26,30 +47,24 @@ export type CurrentUser = {
 };
 
 export function useCurrentUser() {
-  const { data: session } = useSession();
-  const userId = session?.user.id ?? null;
+  const { user, ready } = useAuthUser();
+  const userId = user?.uid ?? null;
 
   return useQuery({
     queryKey: ["auth", "current-user", userId],
-    enabled: Boolean(userId),
+    enabled: ready && Boolean(userId),
     queryFn: async (): Promise<CurrentUser | null> => {
-      if (!userId) return null;
-      const [{ data: profile }, { data: roleRows }] = await Promise.all([
-        supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
-        supabase.from("user_roles").select("role").eq("user_id", userId),
+      if (!user || !userId) return null;
+      await ensureUserBootstrap(user);
+      const [profile, roles] = await Promise.all([
+        getUserProfile(userId),
+        getUserRoles(userId),
       ]);
-      const roles = (roleRows ?? []).map((r) => r.role as string);
       return {
         id: userId,
-        email: session?.user.email ?? null,
-        fullName:
-          profile?.full_name ??
-          (session?.user.user_metadata?.["full_name"] as string | undefined) ??
-          null,
-        avatarUrl:
-          profile?.avatar_url ??
-          (session?.user.user_metadata?.["avatar_url"] as string | undefined) ??
-          null,
+        email: user.email ?? null,
+        fullName: profile?.full_name ?? user.displayName ?? null,
+        avatarUrl: profile?.avatar_url ?? user.photoURL ?? null,
         jobTitle: profile?.job_title ?? null,
         roles,
         isStaff: roles.includes("admin") || roles.includes("manager"),

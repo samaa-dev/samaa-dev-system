@@ -4,6 +4,7 @@ import { LogOut, Menu } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { AppSidebar } from "./AppSidebar";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -17,7 +18,8 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useCurrentUser } from "@/hooks/use-auth";
 import { roleLabels } from "@/lib/samaa";
-import { supabase } from "@/integrations/supabase/client";
+import { getFirebaseAuth } from "@/integrations/firebase/client";
+import { signOut } from "firebase/auth";
 
 export function AppShell({
   title,
@@ -35,10 +37,10 @@ export function AppShell({
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  async function signOut() {
+  async function handleSignOut() {
     await queryClient.cancelQueries();
     queryClient.clear();
-    await supabase.auth.signOut();
+    await signOut(getFirebaseAuth());
     navigate({ to: "/auth", replace: true });
   }
 
@@ -68,6 +70,7 @@ export function AppShell({
 
           <div className="flex items-center gap-2">
             {actions}
+            <ThemeToggle />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="rounded-full outline-none ring-ring focus-visible:ring-2">
@@ -91,7 +94,7 @@ export function AppShell({
                 <DropdownMenuItem asChild>
                   <Link to="/team">إدارة الفريق</Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={signOut} className="text-destructive">
+                <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
                   <LogOut className="h-4 w-4" />
                   تسجيل الخروج
                 </DropdownMenuItem>

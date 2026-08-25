@@ -35,6 +35,25 @@ export const sprintStatusLabels: Record<SprintStatus, string> = {
   completed: "منتهي",
 };
 
+/** Arabic UI labels for sprints (shown as «الدورات» in the product). */
+export const sprintUiLabels = {
+  module: "الدورات",
+  singular: "دورة",
+  singularDefinite: "الدورة",
+  new: "دورة جديدة",
+  name: "اسم الدورة",
+  goal: "هدف الدورة",
+  save: "حفظ الدورة",
+  created: "تم إنشاء الدورة",
+  active: "دورات نشطة",
+  empty: "لا توجد دورات بعد.",
+  none: "بدون دورة",
+  projectSection: "دورات المشروع",
+  count: (n: number) => `${n} ${n === 1 ? "دورة" : "دورات"}`,
+  agileFeature: "دورات تنفيذ",
+  agileFeatureText: "خطّط الدورة، حدّد الهدف، وراقب سرعة الفريق.",
+} as const;
+
 export const roleLabels: Record<string, string> = {
   admin: "مدير النظام",
   manager: "مدير مشاريع",
@@ -43,7 +62,46 @@ export const roleLabels: Record<string, string> = {
 
 export const transactionCategories = {
   income: ["دفعة مشروع", "اشتراك دعم", "استشارة", "أخرى"],
-  expense: ["رواتب", "أدوات وبرمجيات", "استضافة", "تسويق", "مصاريف إدارية", "أخرى"],
+  expense: ["رواتب", "مكافأة", "خصم", "أدوات وبرمجيات", "استضافة", "تسويق", "مصاريف إدارية", "أخرى"],
+};
+
+export type TxTypeLabel = "general" | "project_payment" | "payroll" | "company_expense";
+export type PaymentStatusLabel = "planned" | "invoiced" | "paid" | "overdue";
+export type ExpenseScopeLabel = "company" | "project";
+export type PaymentMethodLabel = "bank_transfer" | "cash" | "ccp" | "paypal" | "other";
+export type EmploymentTypeLabel = "full_time" | "part_time" | "contract";
+
+export const txTypeLabels: Record<TxTypeLabel, string> = {
+  general: "عام",
+  project_payment: "دفعة مشروع",
+  payroll: "راتب",
+  company_expense: "مصروف شركة",
+};
+
+export const paymentStatusLabels: Record<PaymentStatusLabel, string> = {
+  planned: "مخطط",
+  invoiced: "مفوتر",
+  paid: "محصّل",
+  overdue: "متأخر",
+};
+
+export const expenseScopeLabels: Record<ExpenseScopeLabel, string> = {
+  company: "شركة",
+  project: "مشروع",
+};
+
+export const paymentMethodLabels: Record<PaymentMethodLabel, string> = {
+  bank_transfer: "تحويل بنكي",
+  cash: "نقداً",
+  ccp: "CCP",
+  paypal: "PayPal",
+  other: "أخرى",
+};
+
+export const employmentTypeLabels: Record<EmploymentTypeLabel, string> = {
+  full_time: "دوام كامل",
+  part_time: "دوام جزئي",
+  contract: "عقد",
 };
 
 export function formatCurrency(value: number | null | undefined) {

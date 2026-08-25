@@ -1,119 +1,263 @@
 import { queryOptions } from "@tanstack/react-query";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  orderBy,
+  query,
+  where,
+} from "firebase/firestore";
 
-import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
+import { getDb } from "@/integrations/firebase/client";
+import { docsToRows, docToRow, withFirebaseError } from "@/integrations/firebase/helpers";
+import type {
+  Client,
+  ClientContact,
+  KpiSettings,
+  Milestone,
+  PayrollProfile,
+  Profile,
+  Project,
+  Resource,
+  Sprint,
+  Task,
+  Transaction,
+  UserRoles,
+} from "@/integrations/firebase/types";
 
-export type Client = Tables<"clients">;
-export type Project = Tables<"projects">;
-export type Milestone = Tables<"milestones">;
-export type Resource = Tables<"project_resources">;
-export type Sprint = Tables<"sprints">;
-export type Task = Tables<"tasks">;
-export type Transaction = Tables<"transactions">;
-export type Profile = Tables<"profiles">;
-
-function unwrap<T>(res: { data: T | null; error: { message: string } | null }): T {
-  if (res.error) throw new Error(res.error.message);
-  return (res.data ?? []) as T;
-}
-
-export type ClientContact = Tables<"client_contacts">;
+export type { Client, ClientContact, Milestone, PayrollProfile, Profile, Project, Resource, Sprint, Task, Transaction };
 
 export const clientsQuery = () =>
   queryOptions({
     queryKey: ["clients"],
     queryFn: async () =>
-      unwrap<Client[]>(await supabase.from("clients").select("*").order("created_at", { ascending: false })),
+      withFirebaseError(async () => {
+        const snap = await getDocs(query(collection(getDb(), "clients"), orderBy("created_at", "desc")));
+        return docsToRows<Client>(snap.docs);
+      }),
   });
 
 /** Sensitive client contact details — readable only by staff (admin/manager). */
 export const clientContactsQuery = () =>
   queryOptions({
     queryKey: ["client-contacts"],
-    queryFn: async () => unwrap<ClientContact[]>(await supabase.from("client_contacts").select("*")),
+    queryFn: async () =>
+      withFirebaseError(async () => {
+        const snap = await getDocs(collection(getDb(), "client_contacts"));
+        return snap.docs.map((d) => {
+          const data = d.data() as Omit<ClientContact, "client_id">;
+          return {
+            client_id: d.id,
+            email: data.email ?? null,
+            phone: data.phone ?? null,
+            notes: data.notes ?? null,
+            satisfaction: data.satisfaction ?? null,
+            created_at: data.created_at,
+            updated_at: data.updated_at,
+          } satisfies ClientContact;
+        });
+      }),
   });
 
 export const projectsQuery = () =>
   queryOptions({
     queryKey: ["projects"],
     queryFn: async () =>
-      unwrap<Project[]>(await supabase.from("projects").select("*").order("created_at", { ascending: false })),
+      withFirebaseError(async () => {
+        const snap = await getDocs(query(collection(getDb(), "projects"), orderBy("created_at", "desc")));
+        return docsToRows<Project>(snap.docs);
+      }),
   });
 
 export const projectQuery = (id: string) =>
   queryOptions({
     queryKey: ["projects", id],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("projects").select("*").eq("id", id).maybeSingle();
-      if (error) throw new Error(error.message);
-      return data as Project | null;
-    },
+    queryFn: async () =>
+      withFirebaseError(async () => {
+        const snap = await getDoc(doc(getDb(), "projects", id));
+        return docToRow<Project>(snap);
+      }),
   });
 
 export const milestonesQuery = (projectId?: string) =>
   queryOptions({
     queryKey: ["milestones", projectId ?? "all"],
-    queryFn: async () => {
-      let q = supabase.from("milestones").select("*").order("due_date", { ascending: true });
-      if (projectId) q = q.eq("project_id", projectId);
-      return unwrap<Milestone[]>(await q);
-    },
+    queryFn: async () =>
+      withFirebaseError(async () => {
+        const col = collection(getDb(), "milestones");
+        const q = projectId
+          ? query(col, where("project_id", "==", projectId), orderBy("due_date", "asc"))
+          : query(col, orderBy("due_date", "asc"));
+        const snap = await getDocs(q);
+        return docsToRows<Milestone>(snap.docs);
+      }),
   });
 
 export const resourcesQuery = (projectId: string) =>
   queryOptions({
     queryKey: ["resources", projectId],
     queryFn: async () =>
-      unwrap<Resource[]>(
-        await supabase.from("project_resources").select("*").eq("project_id", projectId).order("created_at"),
-      ),
+      withFirebaseError(async () => {
+        const snap = await getDocs(
+          query(
+            collection(getDb(), "project_resources"),
+            where("project_id", "==", projectId),
+            orderBy("created_at", "asc"),
+          ),
+        );
+        return docsToRows<Resource>(snap.docs);
+      }),
   });
 
 export const sprintsQuery = (projectId?: string) =>
   queryOptions({
     queryKey: ["sprints", projectId ?? "all"],
-    queryFn: async () => {
-      let q = supabase.from("sprints").select("*").order("start_date", { ascending: false });
-      if (projectId) q = q.eq("project_id", projectId);
-      return unwrap<Sprint[]>(await q);
-    },
+    queryFn: async () =>
+      withFirebaseError(async () => {
+        const col = collection(getDb(), "sprints");
+        const q = projectId
+          ? query(col, where("project_id", "==", projectId), orderBy("start_date", "desc"))
+          : query(col, orderBy("start_date", "desc"));
+        const snap = await getDocs(q);
+        return docsToRows<Sprint>(snap.docs);
+      }),
+  });
+
+export const sprintQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["sprints", id],
+    queryFn: async () =>
+      withFirebaseError(async () => {
+        const snap = await getDoc(doc(getDb(), "sprints", id));
+        return docToRow<Sprint>(snap);
+      }),
+  });
+
+export const kpiSettingsQuery = () =>
+  queryOptions({
+    queryKey: ["kpi-settings"],
+    queryFn: async () =>
+      withFirebaseError(async () => {
+        const snap = await getDoc(doc(getDb(), "settings", "kpis"));
+        if (!snap.exists()) return null;
+        return snap.data() as KpiSettings;
+      }),
   });
 
 export const tasksQuery = (filters?: { projectId?: string; sprintId?: string }) =>
   queryOptions({
     queryKey: ["tasks", filters?.projectId ?? "all", filters?.sprintId ?? "all"],
-    queryFn: async () => {
-      let q = supabase.from("tasks").select("*").order("position", { ascending: true });
-      if (filters?.projectId) q = q.eq("project_id", filters.projectId);
-      if (filters?.sprintId) q = q.eq("sprint_id", filters.sprintId);
-      return unwrap<Task[]>(await q);
-    },
+    queryFn: async () =>
+      withFirebaseError(async () => {
+        const col = collection(getDb(), "tasks");
+        let q;
+        if (filters?.projectId && filters?.sprintId) {
+          q = query(
+            col,
+            where("project_id", "==", filters.projectId),
+            where("sprint_id", "==", filters.sprintId),
+            orderBy("position", "asc"),
+          );
+        } else if (filters?.projectId) {
+          q = query(col, where("project_id", "==", filters.projectId), orderBy("position", "asc"));
+        } else if (filters?.sprintId) {
+          q = query(col, where("sprint_id", "==", filters.sprintId), orderBy("position", "asc"));
+        } else {
+          q = query(col, orderBy("position", "asc"));
+        }
+        const snap = await getDocs(q);
+        return docsToRows<Task>(snap.docs);
+      }),
   });
 
 export const transactionsQuery = () =>
   queryOptions({
     queryKey: ["transactions"],
     queryFn: async () =>
-      unwrap<Transaction[]>(
-        await supabase.from("transactions").select("*").order("occurred_on", { ascending: false }),
-      ),
+      withFirebaseError(async () => {
+        const snap = await getDocs(
+          query(collection(getDb(), "transactions"), orderBy("occurred_on", "desc")),
+        );
+        return docsToRows<Transaction>(snap.docs);
+      }),
+  });
+
+export const transactionsByProjectQuery = (projectId: string) =>
+  queryOptions({
+    queryKey: ["transactions", "project", projectId],
+    queryFn: async () =>
+      withFirebaseError(async () => {
+        const snap = await getDocs(
+          query(
+            collection(getDb(), "transactions"),
+            where("project_id", "==", projectId),
+            orderBy("occurred_on", "desc"),
+          ),
+        );
+        return docsToRows<Transaction>(snap.docs);
+      }),
+  });
+
+/** Payroll rows: staff can omit userId to load all via transactionsQuery filter client-side,
+ * or pass userId for a member's own payroll (rules allow get/list of own payee_id docs). */
+export const payrollTransactionsQuery = (userId: string) =>
+  queryOptions({
+    queryKey: ["transactions", "payroll", userId],
+    queryFn: async () =>
+      withFirebaseError(async () => {
+        const snap = await getDocs(
+          query(
+            collection(getDb(), "transactions"),
+            where("payee_id", "==", userId),
+            where("tx_type", "==", "payroll"),
+            orderBy("occurred_on", "desc"),
+          ),
+        );
+        return docsToRows<Transaction>(snap.docs);
+      }),
+  });
+
+export const payrollProfileQuery = (userId: string) =>
+  queryOptions({
+    queryKey: ["payroll-profiles", userId],
+    queryFn: async () =>
+      withFirebaseError(async () => {
+        const snap = await getDoc(doc(getDb(), "payroll_profiles", userId));
+        if (!snap.exists()) return null;
+        return { id: snap.id, ...snap.data() } as PayrollProfile;
+      }),
+  });
+
+export const payrollProfilesQuery = () =>
+  queryOptions({
+    queryKey: ["payroll-profiles"],
+    queryFn: async () =>
+      withFirebaseError(async () => {
+        const snap = await getDocs(collection(getDb(), "payroll_profiles"));
+        return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as PayrollProfile);
+      }),
   });
 
 export const teamQuery = () =>
   queryOptions({
     queryKey: ["team"],
-    queryFn: async () => {
-      const [profiles, roles] = await Promise.all([
-        supabase.from("profiles").select("*").order("created_at"),
-        supabase.from("user_roles").select("user_id, role"),
-      ]);
-      if (profiles.error) throw new Error(profiles.error.message);
-      if (roles.error) throw new Error(roles.error.message);
-      return (profiles.data ?? []).map((p) => ({
-        ...p,
-        roles: (roles.data ?? []).filter((r) => r.user_id === p.id).map((r) => r.role as string),
-      }));
-    },
+    queryFn: async () =>
+      withFirebaseError(async () => {
+        const [profilesSnap, rolesSnap] = await Promise.all([
+          getDocs(query(collection(getDb(), "profiles"), orderBy("created_at", "asc"))),
+          getDocs(collection(getDb(), "user_roles")),
+        ]);
+        const rolesByUser = new Map<string, string[]>();
+        for (const d of rolesSnap.docs) {
+          const data = d.data() as UserRoles;
+          rolesByUser.set(d.id, (data.roles ?? []) as string[]);
+        }
+        return docsToRows<Profile>(profilesSnap.docs).map((p) => ({
+          ...p,
+          roles: rolesByUser.get(p.id) ?? [],
+        }));
+      }),
   });
 
 /** Completion percentage of a project from its tasks and milestones. */

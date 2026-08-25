@@ -2,7 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { BarChart3, KanbanSquare, Timer, Wallet } from "lucide-react";
 
 import logo from "@/assets/samaa-logo.png.asset.json";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
+import { sprintUiLabels } from "@/lib/samaa";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -11,12 +13,12 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "نظام Samaa Dev الداخلي لإدارة المشاريع، المهام، السبرنتات، العملاء والحسابات المالية في مكان واحد.",
+          "نظام Samaa Dev الداخلي لإدارة المشاريع، المهام، الدورات، العملاء والحسابات المالية في مكان واحد.",
       },
       { property: "og:title", content: "Samaa Dev — نظام إدارة المشاريع والحسابات" },
       {
         property: "og:description",
-        content: "إدارة المشاريع والمهام والسبرنتات والمالية لوكالة Samaa Dev.",
+        content: "إدارة المشاريع والمهام والدورات والمالية لوكالة Samaa Dev.",
       },
     ],
   }),
@@ -25,7 +27,7 @@ export const Route = createFileRoute("/")({
 
 const features = [
   { icon: KanbanSquare, title: "لوحات كانبان", text: "تتبع المهام من التنفيذ إلى مراجعة الكود والتسليم." },
-  { icon: Timer, title: "سبرنتات أجايل", text: "خطط السبرنت، وحدد الهدف، وراقب سرعة الفريق." },
+  { icon: Timer, title: sprintUiLabels.agileFeature, text: sprintUiLabels.agileFeatureText },
   { icon: Wallet, title: "حسابات ومالية", text: "الإيرادات والمصروفات وصافي الربح والدفعات المتأخرة." },
   { icon: BarChart3, title: "مؤشرات أداء", text: "صحة المشاريع، الميزانية مقابل الإنفاق، والالتزام بالمواعيد." },
 ];
@@ -40,9 +42,12 @@ function Landing() {
             Samaa <span className="text-primary">Dev</span>
           </span>
         </div>
-        <Button asChild>
-          <Link to="/auth">تسجيل الدخول</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <Button asChild>
+            <Link to="/auth">تسجيل الدخول</Link>
+          </Button>
+        </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-6 pb-24 pt-10 md:pt-20">
@@ -51,7 +56,7 @@ function Landing() {
           نظام إدارة <span className="brand-gradient-text">Samaa Dev</span> لكل ما يجري داخل الوكالة
         </h1>
         <p className="mt-5 max-w-2xl text-base text-muted-foreground md:text-lg">
-          مشاريع، عملاء، سبرنتات، مهام، ومؤشرات مالية دقيقة — بواجهة واحدة مخصصة لفريق التطوير.
+          مشاريع، عملاء، دورات، مهام، ومؤشرات مالية دقيقة — بواجهة واحدة مخصصة لفريق التطوير.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Button asChild size="lg">

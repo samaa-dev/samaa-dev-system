@@ -3,9 +3,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import { deleteDoc, doc, setDoc, updateDoc } from "firebase/firestore";
 
 import { AppShell } from "@/components/layout/AppShell";
+import { ConfirmDelete } from "@/components/ConfirmDelete";
 import { DataTable } from "@/components/DataTable";
+import { RowActions } from "@/components/RowActions";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +31,8 @@ import {
 } from "@/components/ui/select";
 import { useCurrentUser } from "@/hooks/use-auth";
 import { clientsQuery, projectsQuery, type Project } from "@/lib/data";
-import { supabase } from "@/integrations/supabase/client";
+import { getDb, getFirebaseAuth } from "@/integrations/firebase/client";
+import { newId, nowIso, withFirebaseError } from "@/integrations/firebase/helpers";
 import {
   formatCurrency,
   formatDate,
@@ -55,6 +59,22 @@ function ProjectsPage() {
   const { data: projects = [] } = useQuery(projectsQuery());
   const { data: clients = [] } = useQuery(clientsQuery());
   const navigate = useNavigate();
+  const [editProject, setEditProject] = useState<Project | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const remove = useMutation({
+    mutationFn: async (id: string) =>
+      withFirebaseError(async () => {
+        await deleteDoc(doc(getDb(), "projects", id));
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      toast.success("تم حذف المشروع");
+      setDeleteId(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const clientName = (id: string | null) => clients.find((c) => c.id === id)?.name ?? "—";
 
@@ -104,9 +124,101 @@ function ProjectsPage() {
             value: (p: Project) => p.deadline ?? "",
             cell: (p: Project) => formatDate(p.deadline),
           },
+          ...(me?.isStaff
+            ? [{
+                key: "actions",
+                header: "",
+                cell: (p: Project) => (
+                  <div onClick={(e) => e.stopPropagation()} role="presentation">
+                    <RowActions
+                      onEdit={() => setEditProject(p)}
+                      onDelete={me.isAdmin ? () => setDeleteId(p.id) : undefined}
+                      canDelete={me.isAdmin}
+                    />
+                  </div>
+                ),
+              }]
+            : []),
         ]}
       />
+
+      {editProject ? (
+        <EditProjectDialog project={editProject} open onOpenChange={(o) => !o && setEditProject(null)} />
+      ) : null}
+
+      <ConfirmDelete
+        open={Boolean(deleteId)}
+        onOpenChange={(o) => !o && setDeleteId(null)}
+        title="حذف المشروع"
+        description="سيتم حذف المشروع نهائياً. هذا الإجراء للمدير فقط."
+        pending={remove.isPending}
+        onConfirm={() => deleteId && remove.mutate(deleteId)}
+      />
     </AppShell>
+  );
+}
+
+type ProjectForm = {
+  name: string;
+  description: string;
+  client_id: string;
+  status: ProjectStatus;
+  budget: string;
+  deadline: string;
+};
+
+function ProjectFormFields({
+  form,
+  setForm,
+  clients,
+}: {
+  form: ProjectForm;
+  setForm: (f: ProjectForm) => void;
+  clients: { id: string; name: string }[];
+}) {
+  return (
+    <div className="grid gap-4">
+      <div className="grid gap-2">
+        <Label htmlFor="p-name">اسم المشروع</Label>
+        <Input id="p-name" value={form.name} maxLength={120} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="p-desc">نطاق العمل (SOW)</Label>
+        <Textarea id="p-desc" value={form.description} maxLength={1000} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-2">
+          <Label>العميل</Label>
+          <Select value={form.client_id} onValueChange={(v) => setForm({ ...form, client_id: v })}>
+            <SelectTrigger><SelectValue placeholder="اختر العميل" /></SelectTrigger>
+            <SelectContent>
+              {clients.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid gap-2">
+          <Label>الحالة</Label>
+          <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as ProjectStatus })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {(Object.keys(projectStatusLabels) as ProjectStatus[]).map((s) => (
+                <SelectItem key={s} value={s}>{projectStatusLabels[s]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="p-budget">الميزانية (د.ج)</Label>
+          <Input id="p-budget" type="number" min={0} value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="p-deadline">الموعد النهائي</Label>
+          <Input id="p-deadline" type="date" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -114,27 +226,34 @@ function NewProjectDialog() {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
   const { data: clients = [] } = useQuery(clientsQuery());
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<ProjectForm>({
     name: "",
     description: "",
     client_id: "",
-    status: "planning" as ProjectStatus,
+    status: "planning",
     budget: "",
     deadline: "",
   });
 
   const mutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("projects").insert({
-        name: form.name.trim(),
-        scope_of_work: form.description.trim() || null,
-        client_id: form.client_id || null,
-        status: form.status,
-        budget: form.budget ? Number(form.budget) : 0,
-        deadline: form.deadline || null,
-      });
-      if (error) throw new Error(error.message);
-    },
+    mutationFn: async () =>
+      withFirebaseError(async () => {
+        const id = newId();
+        const now = nowIso();
+        await setDoc(doc(getDb(), "projects", id), {
+          name: form.name.trim(),
+          scope_of_work: form.description.trim() || null,
+          client_id: form.client_id || null,
+          status: form.status,
+          priority: "medium",
+          budget: form.budget ? Number(form.budget) : 0,
+          start_date: null,
+          deadline: form.deadline || null,
+          created_by: getFirebaseAuth().currentUser?.uid ?? null,
+          created_at: now,
+          updated_at: now,
+        });
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       toast.success("تم إنشاء المشروع");
@@ -156,54 +275,69 @@ function NewProjectDialog() {
         <DialogHeader>
           <DialogTitle>مشروع جديد</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="p-name">اسم المشروع</Label>
-            <Input id="p-name" value={form.name} maxLength={120} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="p-desc">الوصف</Label>
-            <Textarea id="p-desc" value={form.description} maxLength={1000} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label>العميل</Label>
-              <Select value={form.client_id} onValueChange={(v) => setForm({ ...form, client_id: v })}>
-                <SelectTrigger><SelectValue placeholder="اختر العميل" /></SelectTrigger>
-                <SelectContent>
-                  {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label>الحالة</Label>
-              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as ProjectStatus })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(projectStatusLabels) as ProjectStatus[]).map((s) => (
-                    <SelectItem key={s} value={s}>{projectStatusLabels[s]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="p-budget">الميزانية (د.ج)</Label>
-              <Input id="p-budget" type="number" min={0} value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="p-deadline">الموعد النهائي</Label>
-              <Input id="p-deadline" type="date" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} />
-            </div>
-          </div>
-        </div>
+        <ProjectFormFields form={form} setForm={setForm} clients={clients} />
         <DialogFooter>
           <Button
             onClick={() => mutation.mutate()}
             disabled={!form.name.trim() || mutation.isPending}
           >
             {mutation.isPending ? "جارٍ الحفظ…" : "حفظ المشروع"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditProjectDialog({
+  project,
+  open,
+  onOpenChange,
+}: {
+  project: Project;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const queryClient = useQueryClient();
+  const { data: clients = [] } = useQuery(clientsQuery());
+  const [form, setForm] = useState<ProjectForm>({
+    name: project.name,
+    description: project.scope_of_work ?? "",
+    client_id: project.client_id ?? "",
+    status: project.status as ProjectStatus,
+    budget: String(project.budget ?? ""),
+    deadline: project.deadline?.slice(0, 10) ?? "",
+  });
+
+  const mutation = useMutation({
+    mutationFn: async () =>
+      withFirebaseError(async () => {
+        await updateDoc(doc(getDb(), "projects", project.id), {
+          name: form.name.trim(),
+          scope_of_work: form.description.trim() || null,
+          client_id: form.client_id || null,
+          status: form.status,
+          budget: form.budget ? Number(form.budget) : 0,
+          deadline: form.deadline || null,
+          updated_at: nowIso(),
+        });
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      toast.success("تم تحديث المشروع");
+      onOpenChange(false);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>تعديل المشروع</DialogTitle></DialogHeader>
+        <ProjectFormFields form={form} setForm={setForm} clients={clients} />
+        <DialogFooter>
+          <Button onClick={() => mutation.mutate()} disabled={!form.name.trim() || mutation.isPending}>
+            {mutation.isPending ? "جارٍ الحفظ…" : "حفظ التعديلات"}
           </Button>
         </DialogFooter>
       </DialogContent>

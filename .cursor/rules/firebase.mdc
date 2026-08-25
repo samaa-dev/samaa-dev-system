@@ -1,0 +1,22 @@
+---
+description: تحويل Samaa Dev إلى Firebase — الربط يدوي، والكود عبر Cursor
+alwaysApply: true
+---
+
+# Firebase (بدل Supabase)
+
+المصدر التفصيلي: `FIREBASE.md`.
+
+## تقسيم العمل
+
+- المستخدم يربط Firebase يدوياً من Console ويملأ `.env`.
+- Cursor يكتب كل كود Auth و Firestore ويستبدل استدعاءات Supabase.
+- لا تنفّذ التحويل في الكود إلا إذا قال المستخدم صراحة: «نفّذ التحويل إلى Firebase».
+
+## بعد أمر التنفيذ
+
+اتبع القسم 6 في `FIREBASE.md` بالترتيب. حافظ على أسماء الحقول والواجهة. لا تضع مفاتيح Admin في المتصفح. لا تعِد كتابة تاريخ Git.
+
+## كود جديد
+
+أي ميزة بيانات أو مصادقة تُكتب لـ Firebase (`src/integrations/firebase/`) وليس لـ Supabase، حتى أثناء فترة الانتقال.

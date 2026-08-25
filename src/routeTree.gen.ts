@@ -18,6 +18,7 @@ import { Route as AuthenticatedFinanceIndexRouteImport } from './routes/_authent
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects/index'
 import { Route as AuthenticatedProjectsProjectIdRouteImport } from './routes/_authenticated/projects/$projectId'
 import { Route as AuthenticatedSprintsIndexRouteImport } from './routes/_authenticated/sprints/index'
+import { Route as AuthenticatedSprintsSprintIdRouteImport } from './routes/_authenticated/sprints/$sprintId'
 import { Route as AuthenticatedTasksIndexRouteImport } from './routes/_authenticated/tasks/index'
 import { Route as AuthenticatedTeamIndexRouteImport } from './routes/_authenticated/team/index'
 
@@ -70,6 +71,12 @@ const AuthenticatedSprintsIndexRoute =
     path: '/sprints/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedSprintsSprintIdRoute =
+  AuthenticatedSprintsSprintIdRouteImport.update({
+    id: '/sprints/$sprintId',
+    path: '/sprints/$sprintId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedTasksIndexRoute = AuthenticatedTasksIndexRouteImport.update({
   id: '/tasks/',
   path: '/tasks/',
@@ -86,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
+  '/sprints/$sprintId': typeof AuthenticatedSprintsSprintIdRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
   '/finance/': typeof AuthenticatedFinanceIndexRoute
   '/projects/': typeof AuthenticatedProjectsIndexRoute
@@ -98,6 +106,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
+  '/sprints/$sprintId': typeof AuthenticatedSprintsSprintIdRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
   '/finance': typeof AuthenticatedFinanceIndexRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
@@ -112,6 +121,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
+  '/_authenticated/sprints/$sprintId': typeof AuthenticatedSprintsSprintIdRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
   '/_authenticated/finance/': typeof AuthenticatedFinanceIndexRoute
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/projects/$projectId'
+    | '/sprints/$sprintId'
     | '/clients/'
     | '/finance/'
     | '/projects/'
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/projects/$projectId'
+    | '/sprints/$sprintId'
     | '/clients'
     | '/finance'
     | '/projects'
@@ -151,6 +163,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/dashboard'
     | '/_authenticated/projects/$projectId'
+    | '/_authenticated/sprints/$sprintId'
     | '/_authenticated/clients/'
     | '/_authenticated/finance/'
     | '/_authenticated/projects/'
@@ -230,6 +243,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSprintsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/sprints/$sprintId': {
+      id: '/_authenticated/sprints/$sprintId'
+      path: '/sprints/$sprintId'
+      fullPath: '/sprints/$sprintId'
+      preLoaderRoute: typeof AuthenticatedSprintsSprintIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/tasks/': {
       id: '/_authenticated/tasks/'
       path: '/tasks'
@@ -250,6 +270,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedProjectsProjectIdRoute: typeof AuthenticatedProjectsProjectIdRoute
+  AuthenticatedSprintsSprintIdRoute: typeof AuthenticatedSprintsSprintIdRoute
   AuthenticatedClientsIndexRoute: typeof AuthenticatedClientsIndexRoute
   AuthenticatedFinanceIndexRoute: typeof AuthenticatedFinanceIndexRoute
   AuthenticatedProjectsIndexRoute: typeof AuthenticatedProjectsIndexRoute
@@ -261,6 +282,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedProjectsProjectIdRoute: AuthenticatedProjectsProjectIdRoute,
+  AuthenticatedSprintsSprintIdRoute: AuthenticatedSprintsSprintIdRoute,
   AuthenticatedClientsIndexRoute: AuthenticatedClientsIndexRoute,
   AuthenticatedFinanceIndexRoute: AuthenticatedFinanceIndexRoute,
   AuthenticatedProjectsIndexRoute: AuthenticatedProjectsIndexRoute,
