@@ -56,7 +56,12 @@
    - `localhost`
    - نطاق Lovable الحالي إن بقي مستخدماً
    - أي نطاق إنتاج لاحق
+   - **للتجربة من الجوال على نفس الشبكة:** أضف عنوان IP المحلي بدون منفذ، مثال: `192.168.100.6`
+     (خطأ `auth/unauthorized-domain` يعني أن النطاق/الـ IP غير مُدرَج هنا)
 5. سجّل أول مستخدم تجريبي بعد التحويل (حساب Google لفريق الوكالة).
+
+> **ملاحظة LAN:** `localhost` مصرّح به افتراضياً. فتح التطبيق عبر `http://192.168.x.x:8080` يتطلب إضافة ذلك الـ IP في Authorized domains. إن استمر الخطأ بعد الإضافة، افتح [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Credentials → OAuth 2.0 Client (Web) المرتبط بمشروع Firebase، وأضف تحت **Authorized JavaScript origins**:
+> `http://192.168.100.6:8080` (استبدل بالـ IP الفعلي والمنفذ).
 
 ### د. Firestore
 
@@ -259,6 +264,7 @@ Cursor يتحقق عبر المتصفح إن أمكن، وإلا عبر أقرب
 - [ ] تطبيق ويب مضاف والقيم منسوخة
 - [ ] Google Sign-in مفعّل
 - [ ] `localhost` ضمن Authorized domains
+- [ ] (للتجربة من الجوال) IP الشبكة مثل `192.168.100.6` ضمن Authorized domains
 - [ ] Firestore Database منشأة
 - [ ] `.env` مملوء من `.env.example`
 - [ ] (اختياري) حساب خدمة للسيرفر
