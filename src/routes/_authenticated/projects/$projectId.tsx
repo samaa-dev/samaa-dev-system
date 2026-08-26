@@ -50,6 +50,7 @@ import {
   daysLeft,
   formatCurrency,
   formatDate,
+  formUiLabels,
   paymentStatusLabels,
   projectStatusLabels,
   sprintStatusLabels,
@@ -281,7 +282,7 @@ function ProjectDetail() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-sm font-semibold">دفعات المشروع</h2>
             <Button size="sm" variant="outline" onClick={() => openNewPayment()}>
-              <Plus className="h-4 w-4" />دفعة جديدة
+              <Plus className="h-4 w-4" />دفعة
             </Button>
           </div>
           <div className="mt-3 divide-y divide-border">
@@ -579,7 +580,7 @@ function EditProjectDialog({
             <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </div>
           <div className="grid gap-2">
-            <Label>نطاق العمل</Label>
+            <Label>{formUiLabels.projectDescription}</Label>
             <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -780,10 +781,10 @@ function NewResourceDialog({ projectId }: { projectId: string }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline"><Plus className="h-4 w-4" />مورد</Button>
+        <Button size="sm" variant="outline"><Plus className="h-4 w-4" />رابط</Button>
       </DialogTrigger>
       <DialogContent>
-        <DialogHeader><DialogTitle>مورد جديد</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>رابط جديد</DialogTitle></DialogHeader>
         <div className="grid gap-4">
           <div className="grid gap-2">
             <Label>التسمية</Label>

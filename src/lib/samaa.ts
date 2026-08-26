@@ -4,6 +4,8 @@ export type ProjectStatus = "planning" | "active" | "in_review" | "completed" | 
 export type TaskStatus = "backlog" | "todo" | "in_progress" | "review" | "done";
 export type Priority = "high" | "medium" | "low";
 export type SprintStatus = "planned" | "active" | "completed";
+export type BoardStage = "waiting" | "design" | "active_work" | "urgent_delivery";
+export type SprintProgressMode = "auto" | "manual";
 
 export const projectStatusLabels: Record<ProjectStatus, string> = {
   planning: "تخطيط",
@@ -17,9 +19,55 @@ export const taskStatusLabels: Record<TaskStatus, string> = {
   backlog: "قائمة الانتظار",
   todo: "للتنفيذ",
   in_progress: "قيد العمل",
-  review: "مراجعة الكود / الجودة",
+  review: "مراجعة",
   done: "مكتمل",
 };
+
+/** Short encouraging copy for task pulse UI on /overview. */
+export const taskPulseCopy: Record<
+  TaskStatus,
+  { nudge: string; cheer: string; action: string }
+> = {
+  backlog: {
+    nudge: "جاهزة حين يحين وقتها — لا ضغط الآن.",
+    cheer: "وضعتها في الانتظار بذكاء.",
+    action: "إلى الانتظار",
+  },
+  todo: {
+    nudge: "خطوة واحدة صغيرة تكفي للبداية.",
+    cheer: "المهمة واضحة وجاهزة للانطلاق.",
+    action: "ابدأ الآن",
+  },
+  in_progress: {
+    nudge: "أنت في الجو — أكمل ما بدأته.",
+    cheer: "الزخم موجود، استمر بلطف.",
+    action: "قيد العمل",
+  },
+  review: {
+    nudge: "قربت من النهاية — راجع بهدوء.",
+    cheer: "عمل يستحق نظرة أخيرة.",
+    action: "للمراجعة",
+  },
+  done: {
+    nudge: "نفس عميق… أنجزت هذا.",
+    cheer: "أحسنت — مهمة مكتملة.",
+    action: "اكتملت",
+  },
+};
+
+export type OverviewTaskLane = "waiting" | "in_progress" | "done_today";
+
+export const overviewTaskLaneLabels: Record<OverviewTaskLane, string> = {
+  waiting: "قيد الانتظار",
+  in_progress: "قيد العمل",
+  done_today: "مكتملة اليوم",
+};
+
+export function resolveOverviewTaskLane(status: string): OverviewTaskLane {
+  if (status === "done") return "done_today";
+  if (status === "in_progress") return "in_progress";
+  return "waiting";
+}
 
 export const boardColumns: TaskStatus[] = ["todo", "in_progress", "review", "done"];
 
@@ -35,6 +83,76 @@ export const sprintStatusLabels: Record<SprintStatus, string> = {
   completed: "منتهي",
 };
 
+export const boardStageLabels: Record<BoardStage, string> = {
+  waiting: "قيد الانتظار",
+  design: "قيد التصميم",
+  active_work: "قيد العمل",
+  urgent_delivery: "تسليم عاجل",
+};
+
+/** Visual chrome for overview board columns (header + accent). */
+export const boardStageChrome: Record<
+  BoardStage,
+  { header: string; count: string; border: string; accent: string }
+> = {
+  waiting: {
+    header: "bg-slate-500/15 text-slate-800 dark:text-slate-100",
+    count: "bg-slate-600 text-white dark:bg-slate-200 dark:text-slate-900",
+    border: "border-slate-400/40",
+    accent: "bg-slate-500",
+  },
+  design: {
+    header: "bg-sky-500/15 text-sky-900 dark:text-sky-100",
+    count: "bg-sky-600 text-white dark:bg-sky-300 dark:text-sky-950",
+    border: "border-sky-400/40",
+    accent: "bg-sky-500",
+  },
+  active_work: {
+    header: "bg-emerald-500/15 text-emerald-900 dark:text-emerald-100",
+    count: "bg-emerald-600 text-white dark:bg-emerald-300 dark:text-emerald-950",
+    border: "border-emerald-400/40",
+    accent: "bg-emerald-500",
+  },
+  urgent_delivery: {
+    header: "bg-amber-500/20 text-amber-950 dark:text-amber-100",
+    count: "bg-amber-600 text-white dark:bg-amber-300 dark:text-amber-950",
+    border: "border-amber-500/50",
+    accent: "bg-amber-500",
+  },
+};
+
+export const boardStages: BoardStage[] = [
+  "waiting",
+  "design",
+  "active_work",
+  "urgent_delivery",
+];
+
+export const sprintProgressModeLabels: Record<SprintProgressMode, string> = {
+  auto: "تلقائي",
+  manual: "يدوي",
+};
+
+/** Resolve board lane for /overview when board_stage is missing. */
+export function resolveBoardStage(project: {
+  board_stage?: string | null;
+  status: string;
+}): BoardStage | null {
+  if (project.status === "completed") return null;
+  const raw = project.board_stage;
+  if (raw === "waiting" || raw === "design" || raw === "active_work" || raw === "urgent_delivery") {
+    return raw;
+  }
+  if (project.status === "active") return "active_work";
+  if (project.status === "in_review") return "urgent_delivery";
+  return "waiting";
+}
+
+export function clampPercent(value: number) {
+  if (Number.isNaN(value)) return 0;
+  return Math.min(100, Math.max(0, Math.round(value)));
+}
+
 /** Arabic UI labels for sprints (shown as «الدورات» in the product). */
 export const sprintUiLabels = {
   module: "الدورات",
@@ -42,7 +160,7 @@ export const sprintUiLabels = {
   singularDefinite: "الدورة",
   new: "دورة جديدة",
   name: "اسم الدورة",
-  goal: "هدف الدورة",
+  goal: "الهدف",
   save: "حفظ الدورة",
   created: "تم إنشاء الدورة",
   active: "دورات نشطة",
@@ -51,7 +169,16 @@ export const sprintUiLabels = {
   projectSection: "دورات المشروع",
   count: (n: number) => `${n} ${n === 1 ? "دورة" : "دورات"}`,
   agileFeature: "دورات تنفيذ",
-  agileFeatureText: "خطّط الدورة، حدّد الهدف، وراقب سرعة الفريق.",
+  agileFeatureText: "خطّط الدورة، حدّد الهدف، وراقب تقدّم الفريق.",
+} as const;
+
+/** Short Arabic labels for everyday create/edit forms. */
+export const formUiLabels = {
+  projectDescription: "الوصف",
+  clientName: "اسم العميل",
+  email: "البريد",
+  phone: "الهاتف",
+  note: "ملاحظة",
 } as const;
 
 export const roleLabels: Record<string, string> = {

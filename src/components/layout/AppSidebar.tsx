@@ -7,14 +7,16 @@ import {
   Wallet,
   Users,
   UserCog,
+  Building2,
 } from "lucide-react";
 
-import logo from "@/assets/samaa-logo.png.asset.json";
+import { SamaaLogo } from "@/components/brand/SamaaLogo";
 import { cn } from "@/lib/utils";
 import { sprintUiLabels } from "@/lib/samaa";
 import { useCurrentUser } from "@/hooks/use-auth";
 
 const items = [
+  { title: "عرض الشركة", url: "/overview", icon: Building2, staffOnly: false },
   { title: "لوحة القيادة", url: "/dashboard", icon: LayoutDashboard, staffOnly: false },
   { title: "المشاريع", url: "/projects", icon: FolderKanban, staffOnly: false },
   { title: "المهام", url: "/tasks", icon: ListChecks, staffOnly: false },
@@ -30,8 +32,8 @@ export function AppSidebar() {
 
   return (
     <aside className="hidden w-64 shrink-0 flex-col border-e border-sidebar-border bg-sidebar p-4 md:flex">
-      <Link to="/dashboard" className="mb-8 flex items-center gap-3 px-2">
-        <img src={logo.url} alt="شعار Samaa Dev" className="h-9 w-9 object-contain" />
+      <Link to="/overview" className="mb-8 flex items-center gap-3 px-2">
+        <SamaaLogo className="h-9 w-9 shrink-0" />
         <span className="leading-tight">
           <span className="block text-base font-bold text-sidebar-foreground">Samaa Dev</span>
           <span className="block text-[11px] tracking-widest text-muted-foreground">

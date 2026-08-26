@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+  <!-- Samaa mark: purple chevron over dark base (matches favicon) -->
+  <path
+    d="M14 28c0-1.8 2-2.8 3.4-1.7l15.2 11.3c.8.6 1.9.6 2.7 0L50.6 26.3c1.4-1.1 3.4-.1 3.4 1.7v3.2c0 .7-.3 1.4-.9 1.8L36.1 43.8c-2.4 1.8-5.7 1.8-8.1 0L14.9 33c-.6-.4-.9-1.1-.9-1.8V28Z"
+    fill="#7C3AED"
+  />
+  <path
+    d="M18 46.5c0-1.4 1.1-2.5 2.5-2.5h23c1.4 0 2.5 1.1 2.5 2.5s-1.1 2.5-2.5 2.5h-23c-1.4 0-2.5-1.1-2.5-2.5Z"
+    fill="#1F2937"
+  />
+</svg>

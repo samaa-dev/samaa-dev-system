@@ -770,7 +770,7 @@ function NewTransactionDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm"><Plus className="h-4 w-4" />حركة عامة</Button>
+        <Button size="sm" variant="outline"><Plus className="h-4 w-4" />حركة عامة</Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader><DialogTitle>حركة مالية عامة</DialogTitle></DialogHeader>

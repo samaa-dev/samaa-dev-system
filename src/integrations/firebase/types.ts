@@ -44,6 +44,10 @@ export type Project = {
   deadline: string | null;
   status: string;
   priority: string;
+  /** Operational board lane on /overview (independent of status). */
+  board_stage?: string | null;
+  /** Manual progress 0–100 for /overview (not derived from tasks/payments). */
+  progress_percent?: number | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -78,6 +82,9 @@ export type Sprint = {
   start_date: string;
   end_date: string;
   status: string;
+  /** auto = from tasks; manual = use progress_percent. */
+  progress_mode?: string | null;
+  progress_percent?: number | null;
   created_at: string;
   updated_at: string;
 };

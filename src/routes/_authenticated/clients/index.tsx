@@ -183,46 +183,57 @@ type ClientForm = {
 function ClientFormFields({
   form,
   setForm,
+  mode,
 }: {
   form: ClientForm;
   setForm: (f: ClientForm) => void;
+  mode: "create" | "edit";
 }) {
   return (
     <div className="grid gap-4">
       <div className="grid gap-2">
-        <Label htmlFor="c-name">اسم العميل / الشركة</Label>
+        <Label htmlFor="c-name">اسم العميل</Label>
         <Input id="c-name" maxLength={120} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      {mode === "edit" ? (
         <div className="grid gap-2">
           <Label htmlFor="c-contact">الشركة</Label>
           <Input id="c-contact" maxLength={120} value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} />
         </div>
+      ) : null}
+      <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-2">
           <Label htmlFor="c-phone">الهاتف</Label>
           <Input id="c-phone" maxLength={40} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
         </div>
+        <div className="grid gap-2">
+          <Label htmlFor="c-email">البريد</Label>
+          <Input id="c-email" type="email" maxLength={255} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+        </div>
       </div>
-      <div className="grid gap-2">
-        <Label htmlFor="c-email">البريد الإلكتروني</Label>
-        <Input id="c-email" type="email" maxLength={255} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="c-satisfaction">رضا العميل (1–5)</Label>
-        <Select value={form.satisfaction} onValueChange={(v) => setForm({ ...form, satisfaction: v })}>
-          <SelectTrigger><SelectValue placeholder="بدون تقييم" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">بدون تقييم</SelectItem>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <SelectItem key={n} value={String(n)}>{n}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="c-notes">ملاحظات</Label>
-        <Textarea id="c-notes" maxLength={1000} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-      </div>
+      {mode === "edit" ? (
+        <>
+          <div className="grid gap-2">
+            <Label htmlFor="c-satisfaction">رضا العميل (1–5)</Label>
+            <Select
+              value={form.satisfaction || "__none__"}
+              onValueChange={(v) => setForm({ ...form, satisfaction: v === "__none__" ? "" : v })}
+            >
+              <SelectTrigger><SelectValue placeholder="بدون تقييم" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">بدون تقييم</SelectItem>
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="c-notes">ملاحظات</Label>
+            <Textarea id="c-notes" maxLength={1000} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }
@@ -246,7 +257,7 @@ function NewClientDialog() {
         const now = nowIso();
         await setDoc(doc(getDb(), "clients", id), {
           name: form.name.trim(),
-          company: form.company.trim() || null,
+          company: null,
           created_by: getFirebaseAuth().currentUser?.uid ?? null,
           created_at: now,
           updated_at: now,
@@ -255,8 +266,8 @@ function NewClientDialog() {
         await setDoc(doc(getDb(), "client_contacts", id), {
           email: form.email.trim() || null,
           phone: form.phone.trim() || null,
-          notes: form.notes.trim() || null,
-          satisfaction: form.satisfaction ? Number(form.satisfaction) : null,
+          notes: null,
+          satisfaction: null,
           created_at: now,
           updated_at: now,
         });
@@ -276,9 +287,9 @@ function NewClientDialog() {
       <DialogTrigger asChild>
         <Button size="sm"><Plus className="h-4 w-4" />عميل جديد</Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-md">
         <DialogHeader><DialogTitle>عميل جديد</DialogTitle></DialogHeader>
-        <ClientFormFields form={form} setForm={setForm} />
+        <ClientFormFields form={form} setForm={setForm} mode="create" />
         <DialogFooter>
           <Button onClick={() => mutation.mutate()} disabled={!form.name.trim() || mutation.isPending}>
             {mutation.isPending ? "جارٍ الحفظ…" : "حفظ العميل"}
@@ -343,9 +354,9 @@ function EditClientDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-md">
         <DialogHeader><DialogTitle>تعديل العميل</DialogTitle></DialogHeader>
-        <ClientFormFields form={form} setForm={setForm} />
+        <ClientFormFields form={form} setForm={setForm} mode="edit" />
         <DialogFooter>
           <Button onClick={() => mutation.mutate()} disabled={!form.name.trim() || mutation.isPending}>
             {mutation.isPending ? "جارٍ الحفظ…" : "حفظ التعديلات"}

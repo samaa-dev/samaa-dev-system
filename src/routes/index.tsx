@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BarChart3, KanbanSquare, Timer, Wallet } from "lucide-react";
 
-import logo from "@/assets/samaa-logo.png.asset.json";
+import { SamaaLogo } from "@/components/brand/SamaaLogo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { sprintUiLabels } from "@/lib/samaa";
@@ -37,7 +37,7 @@ function Landing() {
     <div className="grid-glow min-h-screen">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
         <div className="flex items-center gap-3">
-          <img src={logo.url} alt="شعار Samaa Dev" className="h-10 w-10 object-contain" />
+          <SamaaLogo className="h-10 w-10" />
           <span className="text-lg font-bold">
             Samaa <span className="text-primary">Dev</span>
           </span>

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -31,10 +32,12 @@ import {
 import { useCurrentUser } from "@/hooks/use-auth";
 import { getDb } from "@/integrations/firebase/client";
 import { nowIso, withFirebaseError } from "@/integrations/firebase/helpers";
+import type { Sprint } from "@/integrations/firebase/types";
 import { projectsQuery, sprintQuery, tasksQuery } from "@/lib/data";
 import {
   formatDate,
   priorityLabels,
+  sprintProgressModeLabels,
   sprintStatusLabels,
   sprintUiLabels,
   statusTone,
@@ -89,7 +92,10 @@ function SprintDetailPage() {
   }
 
   const done = tasks.filter((t) => t.status === "done").length;
-  const pct = tasks.length ? Math.round((done / tasks.length) * 100) : 0;
+  const mode = sprint?.progress_mode === "manual" ? "manual" : "auto";
+  const pct = mode === "manual"
+    ? Number(sprint?.progress_percent ?? 0)
+    : tasks.length ? Math.round((done / tasks.length) * 100) : 0;
   const project = projects.find((p) => p.id === sprint?.project_id);
 
   return (
@@ -126,7 +132,9 @@ function SprintDetailPage() {
           <Progress value={pct} className="h-2 flex-1" />
           <span className="text-sm font-semibold text-primary">{pct}%</span>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">{done} من {tasks.length} مهمة مكتملة</p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          {sprintProgressModeLabels[mode]} · {done} من {tasks.length} مهمة مكتملة
+        </p>
       </div>
 
       <section className="panel mt-4 p-5">
@@ -173,7 +181,7 @@ function EditSprintDialog({
   open,
   onOpenChange,
 }: {
-  sprint: { id: string; name: string; goal: string | null; project_id: string; status: string; start_date: string; end_date: string };
+  sprint: Sprint;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -184,6 +192,8 @@ function EditSprintDialog({
     goal: sprint.goal ?? "",
     project_id: sprint.project_id,
     status: sprint.status as SprintStatus,
+    progress_mode: sprint.progress_mode === "manual" ? "manual" : "auto",
+    progress_percent: String(sprint.progress_percent ?? 0),
     start_date: sprint.start_date?.slice(0, 10) ?? "",
     end_date: sprint.end_date?.slice(0, 10) ?? "",
   });
@@ -196,6 +206,8 @@ function EditSprintDialog({
           goal: form.goal.trim() || null,
           project_id: form.project_id,
           status: form.status,
+          progress_mode: form.progress_mode,
+          progress_percent: Math.min(100, Math.max(0, Number(form.progress_percent || 0))),
           start_date: form.start_date,
           end_date: form.end_date,
           updated_at: nowIso(),
@@ -243,6 +255,37 @@ function EditSprintDialog({
                 </SelectContent>
               </Select>
             </div>
+            <div className="grid gap-2 sm:col-span-2">
+              <div className="flex items-center justify-between rounded-xl border border-border bg-muted/20 px-3 py-2.5">
+                <div>
+                  <Label>احتساب التقدّم</Label>
+                  <p className="text-xs text-muted-foreground">تلقائي من المهام أو يدوي من الواجهة</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    {sprintProgressModeLabels[form.progress_mode as "auto" | "manual"]}
+                  </span>
+                  <Switch
+                    checked={form.progress_mode === "manual"}
+                    onCheckedChange={(checked) =>
+                      setForm({ ...form, progress_mode: checked ? "manual" : "auto" })
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+            {form.progress_mode === "manual" ? (
+              <div className="grid gap-2">
+                <Label>نسبة التقدّم اليدوية</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={form.progress_percent}
+                  onChange={(e) => setForm({ ...form, progress_percent: e.target.value })}
+                />
+              </div>
+            ) : null}
             <div className="grid gap-2">
               <Label>تاريخ البداية</Label>
               <Input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />

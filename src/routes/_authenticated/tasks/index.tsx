@@ -12,7 +12,6 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -212,14 +211,12 @@ function TasksPage() {
 
 type TaskForm = {
   title: string;
-  description: string;
   project_id: string;
   sprint_id: string;
   assignee_id: string;
   status: TaskStatus;
   priority: Priority;
   due_date: string;
-  estimate_hours: string;
 };
 
 function TaskFormFields({
@@ -228,23 +225,21 @@ function TaskFormFields({
   projects,
   sprints,
   team,
+  mode,
 }: {
   form: TaskForm;
   setForm: (f: TaskForm) => void;
   projects: { id: string; name: string }[];
   sprints: { id: string; name: string; project_id: string }[];
   team: { id: string; full_name: string | null }[];
+  mode: "create" | "edit";
 }) {
   const projectSprints = sprints.filter((s) => !form.project_id || s.project_id === form.project_id);
   return (
     <div className="grid gap-4">
       <div className="grid gap-2">
-        <Label htmlFor="t-title">عنوان المهمة</Label>
+        <Label htmlFor="t-title">العنوان</Label>
         <Input id="t-title" maxLength={160} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-      </div>
-      <div className="grid gap-2">
-        <Label htmlFor="t-desc">التفاصيل</Label>
-        <Textarea id="t-desc" maxLength={1000} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-2">
@@ -257,33 +252,12 @@ function TaskFormFields({
           </Select>
         </div>
         <div className="grid gap-2">
-          <Label>{sprintUiLabels.singularDefinite}</Label>
-          <Select value={form.sprint_id || "__none__"} onValueChange={(v) => setForm({ ...form, sprint_id: v === "__none__" ? "" : v })}>
-            <SelectTrigger><SelectValue placeholder={sprintUiLabels.none} /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__">{sprintUiLabels.none}</SelectItem>
-              {projectSprints.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="grid gap-2">
           <Label>المسؤول</Label>
           <Select value={form.assignee_id} onValueChange={(v) => setForm({ ...form, assignee_id: v })}>
             <SelectTrigger><SelectValue placeholder="اختر عضو الفريق" /></SelectTrigger>
             <SelectContent>
               {team.map((m) => (
                 <SelectItem key={m.id} value={m.id}>{m.full_name ?? "عضو"}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="grid gap-2">
-          <Label>الحالة</Label>
-          <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as TaskStatus })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {(Object.keys(taskStatusLabels) as TaskStatus[]).map((s) => (
-                <SelectItem key={s} value={s}>{taskStatusLabels[s]}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -303,10 +277,31 @@ function TaskFormFields({
           <Label htmlFor="t-due">تاريخ الاستحقاق</Label>
           <Input id="t-due" type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
         </div>
-        <div className="grid gap-2">
-          <Label htmlFor="t-est">الساعات المقدّرة</Label>
-          <Input id="t-est" type="number" min={0} value={form.estimate_hours} onChange={(e) => setForm({ ...form, estimate_hours: e.target.value })} />
-        </div>
+        {mode === "edit" ? (
+          <>
+            <div className="grid gap-2">
+              <Label>الحالة</Label>
+              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as TaskStatus })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(taskStatusLabels) as TaskStatus[]).map((s) => (
+                    <SelectItem key={s} value={s}>{taskStatusLabels[s]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>{sprintUiLabels.singularDefinite}</Label>
+              <Select value={form.sprint_id || "__none__"} onValueChange={(v) => setForm({ ...form, sprint_id: v === "__none__" ? "" : v })}>
+                <SelectTrigger><SelectValue placeholder={sprintUiLabels.none} /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">{sprintUiLabels.none}</SelectItem>
+                  {projectSprints.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        ) : null}
       </div>
     </div>
   );
@@ -316,18 +311,15 @@ function NewTaskDialog() {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
   const { data: projects = [] } = useQuery(projectsQuery());
-  const { data: sprints = [] } = useQuery(sprintsQuery());
   const { data: team = [] } = useQuery(teamQuery());
   const [form, setForm] = useState<TaskForm>({
     title: "",
-    description: "",
     project_id: "",
     sprint_id: "",
     assignee_id: "",
     status: "todo",
     priority: "medium",
     due_date: "",
-    estimate_hours: "",
   });
 
   const mutation = useMutation({
@@ -337,14 +329,14 @@ function NewTaskDialog() {
         const now = nowIso();
         await setDoc(doc(getDb(), "tasks", id), {
           title: form.title.trim(),
-          description: form.description.trim() || null,
+          description: null,
           project_id: form.project_id,
-          sprint_id: form.sprint_id || null,
+          sprint_id: null,
           assignee_id: form.assignee_id || null,
-          status: form.status,
+          status: "todo",
           priority: form.priority,
           position: 0,
-          estimated_hours: form.estimate_hours ? Number(form.estimate_hours) : 0,
+          estimated_hours: 0,
           actual_hours: 0,
           due_date: form.due_date || null,
           created_by: getFirebaseAuth().currentUser?.uid ?? null,
@@ -357,7 +349,7 @@ function NewTaskDialog() {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       toast.success("تمت إضافة المهمة");
       setOpen(false);
-      setForm({ title: "", description: "", project_id: "", sprint_id: "", assignee_id: "", status: "todo", priority: "medium", due_date: "", estimate_hours: "" });
+      setForm({ title: "", project_id: "", sprint_id: "", assignee_id: "", status: "todo", priority: "medium", due_date: "" });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -367,9 +359,9 @@ function NewTaskDialog() {
       <DialogTrigger asChild>
         <Button size="sm"><Plus className="h-4 w-4" />مهمة جديدة</Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-md">
         <DialogHeader><DialogTitle>مهمة جديدة</DialogTitle></DialogHeader>
-        <TaskFormFields form={form} setForm={setForm} projects={projects} sprints={sprints} team={team} />
+        <TaskFormFields form={form} setForm={setForm} projects={projects} sprints={[]} team={team} mode="create" />
         <DialogFooter>
           <Button onClick={() => mutation.mutate()} disabled={!form.title.trim() || !form.project_id || mutation.isPending}>
             {mutation.isPending ? "جارٍ الحفظ…" : "حفظ المهمة"}
@@ -395,14 +387,12 @@ function EditTaskDialog({
   const { data: team = [] } = useQuery(teamQuery());
   const [form, setForm] = useState<TaskForm>({
     title: task.title,
-    description: task.description ?? "",
     project_id: task.project_id,
     sprint_id: task.sprint_id ?? "",
     assignee_id: task.assignee_id ?? "",
     status: task.status as TaskStatus,
     priority: task.priority as Priority,
     due_date: task.due_date?.slice(0, 10) ?? "",
-    estimate_hours: String(task.estimated_hours ?? ""),
   });
 
   const mutation = useMutation({
@@ -410,13 +400,11 @@ function EditTaskDialog({
       withFirebaseError(async () => {
         await updateDoc(doc(getDb(), "tasks", task.id), {
           title: form.title.trim(),
-          description: form.description.trim() || null,
           project_id: form.project_id,
           sprint_id: form.sprint_id || null,
           assignee_id: form.assignee_id || null,
           status: form.status,
           priority: form.priority,
-          estimated_hours: form.estimate_hours ? Number(form.estimate_hours) : 0,
           due_date: form.due_date || null,
           completed_at: form.status === "done" ? task.completed_at ?? nowIso() : null,
           updated_at: nowIso(),
@@ -432,9 +420,9 @@ function EditTaskDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-md">
         <DialogHeader><DialogTitle>تعديل المهمة</DialogTitle></DialogHeader>
-        <TaskFormFields form={form} setForm={setForm} projects={projects} sprints={sprints} team={team} />
+        <TaskFormFields form={form} setForm={setForm} projects={projects} sprints={sprints} team={team} mode="edit" />
         <DialogFooter>
           <Button onClick={() => mutation.mutate()} disabled={!form.title.trim() || !form.project_id || mutation.isPending}>
             {mutation.isPending ? "جارٍ الحفظ…" : "حفظ التعديلات"}

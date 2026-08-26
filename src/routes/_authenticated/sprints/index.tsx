@@ -154,10 +154,12 @@ function SprintFormFields({
   form,
   setForm,
   projects,
+  mode,
 }: {
   form: SprintForm;
   setForm: (f: SprintForm) => void;
   projects: { id: string; name: string }[];
+  mode: "create" | "edit";
 }) {
   return (
     <div className="grid gap-4">
@@ -166,30 +168,15 @@ function SprintFormFields({
         <Input id="s-name" maxLength={120} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="s-goal">{sprintUiLabels.goal}</Label>
-        <Textarea id="s-goal" maxLength={500} value={form.goal} onChange={(e) => setForm({ ...form, goal: e.target.value })} />
+        <Label>المشروع</Label>
+        <Select value={form.project_id} onValueChange={(v) => setForm({ ...form, project_id: v })}>
+          <SelectTrigger><SelectValue placeholder="اختر المشروع" /></SelectTrigger>
+          <SelectContent>
+            {projects.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="grid gap-2">
-          <Label>المشروع</Label>
-          <Select value={form.project_id} onValueChange={(v) => setForm({ ...form, project_id: v })}>
-            <SelectTrigger><SelectValue placeholder="اختر المشروع" /></SelectTrigger>
-            <SelectContent>
-              {projects.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="grid gap-2">
-          <Label>الحالة</Label>
-          <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as SprintStatus })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {(Object.keys(sprintStatusLabels) as SprintStatus[]).map((s) => (
-                <SelectItem key={s} value={s}>{sprintStatusLabels[s]}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
         <div className="grid gap-2">
           <Label htmlFor="s-start">تاريخ البداية</Label>
           <Input id="s-start" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} />
@@ -199,6 +186,25 @@ function SprintFormFields({
           <Input id="s-end" type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
         </div>
       </div>
+      {mode === "edit" ? (
+        <>
+          <div className="grid gap-2">
+            <Label htmlFor="s-goal">{sprintUiLabels.goal}</Label>
+            <Textarea id="s-goal" maxLength={500} value={form.goal} onChange={(e) => setForm({ ...form, goal: e.target.value })} />
+          </div>
+          <div className="grid gap-2">
+            <Label>الحالة</Label>
+            <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as SprintStatus })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(Object.keys(sprintStatusLabels) as SprintStatus[]).map((s) => (
+                  <SelectItem key={s} value={s}>{sprintStatusLabels[s]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }
@@ -223,9 +229,11 @@ function NewSprintDialog() {
         const now = nowIso();
         await setDoc(doc(getDb(), "sprints", id), {
           name: form.name.trim(),
-          goal: form.goal.trim() || null,
+          goal: null,
           project_id: form.project_id,
-          status: form.status,
+          status: "planned",
+          progress_mode: "auto",
+          progress_percent: 0,
           start_date: form.start_date || now.slice(0, 10),
           end_date: form.end_date || now.slice(0, 10),
           created_at: now,
@@ -246,9 +254,9 @@ function NewSprintDialog() {
       <DialogTrigger asChild>
         <Button size="sm"><Plus className="h-4 w-4" />{sprintUiLabels.new}</Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-md">
         <DialogHeader><DialogTitle>{sprintUiLabels.new}</DialogTitle></DialogHeader>
-        <SprintFormFields form={form} setForm={setForm} projects={projects} />
+        <SprintFormFields form={form} setForm={setForm} projects={projects} mode="create" />
         <DialogFooter>
           <Button onClick={() => mutation.mutate()} disabled={!form.name.trim() || !form.project_id || mutation.isPending}>
             {mutation.isPending ? "جارٍ الحفظ…" : sprintUiLabels.save}
@@ -302,9 +310,9 @@ function EditSprintDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-md">
         <DialogHeader><DialogTitle>تعديل الدورة</DialogTitle></DialogHeader>
-        <SprintFormFields form={form} setForm={setForm} projects={projects} />
+        <SprintFormFields form={form} setForm={setForm} projects={projects} mode="edit" />
         <DialogFooter>
           <Button onClick={() => mutation.mutate()} disabled={!form.name.trim() || !form.project_id || mutation.isPending}>
             {mutation.isPending ? "جارٍ الحفظ…" : "حفظ التعديلات"}

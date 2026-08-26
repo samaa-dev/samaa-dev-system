@@ -13,7 +13,6 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -160,9 +159,7 @@ function ProjectsPage() {
 
 type ProjectForm = {
   name: string;
-  description: string;
   client_id: string;
-  status: ProjectStatus;
   budget: string;
   deadline: string;
 };
@@ -183,32 +180,17 @@ function ProjectFormFields({
         <Input id="p-name" value={form.name} maxLength={120} onChange={(e) => setForm({ ...form, name: e.target.value })} />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="p-desc">نطاق العمل (SOW)</Label>
-        <Textarea id="p-desc" value={form.description} maxLength={1000} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+        <Label>العميل</Label>
+        <Select value={form.client_id} onValueChange={(v) => setForm({ ...form, client_id: v })}>
+          <SelectTrigger><SelectValue placeholder="اختر العميل" /></SelectTrigger>
+          <SelectContent>
+            {clients.map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="grid gap-2">
-          <Label>العميل</Label>
-          <Select value={form.client_id} onValueChange={(v) => setForm({ ...form, client_id: v })}>
-            <SelectTrigger><SelectValue placeholder="اختر العميل" /></SelectTrigger>
-            <SelectContent>
-              {clients.map((c) => (
-                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="grid gap-2">
-          <Label>الحالة</Label>
-          <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v as ProjectStatus })}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {(Object.keys(projectStatusLabels) as ProjectStatus[]).map((s) => (
-                <SelectItem key={s} value={s}>{projectStatusLabels[s]}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
         <div className="grid gap-2">
           <Label htmlFor="p-budget">الميزانية (د.ج)</Label>
           <Input id="p-budget" type="number" min={0} value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} />
@@ -228,9 +210,7 @@ function NewProjectDialog() {
   const { data: clients = [] } = useQuery(clientsQuery());
   const [form, setForm] = useState<ProjectForm>({
     name: "",
-    description: "",
     client_id: "",
-    status: "planning",
     budget: "",
     deadline: "",
   });
@@ -242,10 +222,12 @@ function NewProjectDialog() {
         const now = nowIso();
         await setDoc(doc(getDb(), "projects", id), {
           name: form.name.trim(),
-          scope_of_work: form.description.trim() || null,
+          scope_of_work: null,
           client_id: form.client_id || null,
-          status: form.status,
+          status: "planning",
           priority: "medium",
+          board_stage: "waiting",
+          progress_percent: 0,
           budget: form.budget ? Number(form.budget) : 0,
           start_date: null,
           deadline: form.deadline || null,
@@ -258,7 +240,7 @@ function NewProjectDialog() {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       toast.success("تم إنشاء المشروع");
       setOpen(false);
-      setForm({ name: "", description: "", client_id: "", status: "planning", budget: "", deadline: "" });
+      setForm({ name: "", client_id: "", budget: "", deadline: "" });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -271,7 +253,7 @@ function NewProjectDialog() {
           مشروع جديد
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>مشروع جديد</DialogTitle>
         </DialogHeader>
@@ -302,9 +284,7 @@ function EditProjectDialog({
   const { data: clients = [] } = useQuery(clientsQuery());
   const [form, setForm] = useState<ProjectForm>({
     name: project.name,
-    description: project.scope_of_work ?? "",
     client_id: project.client_id ?? "",
-    status: project.status as ProjectStatus,
     budget: String(project.budget ?? ""),
     deadline: project.deadline?.slice(0, 10) ?? "",
   });
@@ -314,9 +294,7 @@ function EditProjectDialog({
       withFirebaseError(async () => {
         await updateDoc(doc(getDb(), "projects", project.id), {
           name: form.name.trim(),
-          scope_of_work: form.description.trim() || null,
           client_id: form.client_id || null,
-          status: form.status,
           budget: form.budget ? Number(form.budget) : 0,
           deadline: form.deadline || null,
           updated_at: nowIso(),
@@ -332,7 +310,7 @@ function EditProjectDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-md">
         <DialogHeader><DialogTitle>تعديل المشروع</DialogTitle></DialogHeader>
         <ProjectFormFields form={form} setForm={setForm} clients={clients} />
         <DialogFooter>

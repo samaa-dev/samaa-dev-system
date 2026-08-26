@@ -272,3 +272,24 @@ export function projectProgress(tasks: Task[], milestones: Milestone[]) {
   const parts = [taskPart, msPart].filter((p): p is number => p !== null);
   return Math.round((parts.reduce((a, b) => a + b, 0) / parts.length) * 100);
 }
+
+/** Sprint progress: auto from tasks, or stored manual percent. */
+export function sprintProgress(
+  sprint: Pick<Sprint, "id" | "progress_mode" | "progress_percent">,
+  tasks: Task[],
+) {
+  const mode = sprint.progress_mode === "manual" ? "manual" : "auto";
+  if (mode === "manual") {
+    const n = Number(sprint.progress_percent ?? 0);
+    return Number.isNaN(n) ? 0 : Math.min(100, Math.max(0, Math.round(n)));
+  }
+  const items = tasks.filter((t) => t.sprint_id === sprint.id);
+  if (!items.length) return 0;
+  const done = items.filter((t) => t.status === "done").length;
+  return Math.round((done / items.length) * 100);
+}
+
+export function projectManualProgress(project: Pick<Project, "progress_percent">) {
+  const n = Number(project.progress_percent ?? 0);
+  return Number.isNaN(n) ? 0 : Math.min(100, Math.max(0, Math.round(n)));
+}

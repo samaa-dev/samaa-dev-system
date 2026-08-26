@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 import { toast } from "sonner";
 
-import logo from "@/assets/samaa-logo.png.asset.json";
+import { SamaaLogo } from "@/components/brand/SamaaLogo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { EmailNotAllowedError, isEmailAllowed } from "@/integrations/firebase/allowlist";
@@ -95,7 +95,7 @@ function AuthPage() {
         <ThemeToggle />
       </div>
       <div className="panel w-full max-w-md p-8 text-center">
-        <img src={logo.url} alt="شعار Samaa Dev" className="mx-auto h-16 w-16 object-contain" />
+        <SamaaLogo className="mx-auto h-16 w-16" />
         <h1 className="mt-6 text-2xl font-bold">
           Samaa <span className="text-primary">Dev</span>
         </h1>

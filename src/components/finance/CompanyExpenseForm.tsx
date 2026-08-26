@@ -6,7 +6,6 @@ import { doc, setDoc, updateDoc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -35,9 +34,7 @@ type FormState = {
   title: string;
   category: string;
   amount: string;
-  vendor: string;
   occurred_on: string;
-  is_paid: boolean;
   notes: string;
 };
 
@@ -55,9 +52,7 @@ export function CompanyExpenseForm({
     title: "",
     category: "",
     amount: "",
-    vendor: "",
     occurred_on: new Date().toISOString().slice(0, 10),
-    is_paid: true,
     notes: "",
   });
 
@@ -68,9 +63,7 @@ export function CompanyExpenseForm({
         title: editTx.description?.split(" — ")[0] ?? "",
         category: editTx.category ?? "",
         amount: String(editTx.amount ?? ""),
-        vendor: editTx.vendor ?? "",
         occurred_on: editTx.occurred_on?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
-        is_paid: editTx.is_paid,
         notes: editTx.description?.includes(" — ")
           ? editTx.description.split(" — ").slice(1).join(" — ")
           : "",
@@ -80,9 +73,7 @@ export function CompanyExpenseForm({
         title: "",
         category: "",
         amount: "",
-        vendor: "",
         occurred_on: new Date().toISOString().slice(0, 10),
-        is_paid: true,
         notes: "",
       });
     }
@@ -101,10 +92,10 @@ export function CompanyExpenseForm({
           category: form.category || null,
           description,
           amount: Number(form.amount || 0),
-          vendor: form.vendor.trim() || null,
+          vendor: null,
           occurred_on: form.occurred_on || now.slice(0, 10),
           due_date: null,
-          is_paid: form.is_paid,
+          is_paid: true,
           project_id: null,
           client_id: null,
           updated_at: now,
@@ -131,7 +122,7 @@ export function CompanyExpenseForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{editTx ? "تعديل مصروف شركة" : "مصروف شركة جديد"}</DialogTitle>
         </DialogHeader>
@@ -140,37 +131,27 @@ export function CompanyExpenseForm({
             <Label>البيان</Label>
             <Input value={form.title} maxLength={160} onChange={(e) => setForm({ ...form, title: e.target.value })} />
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label>التصنيف</Label>
-              <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
-                <SelectTrigger><SelectValue placeholder="اختر التصنيف" /></SelectTrigger>
-                <SelectContent>
-                  {companyExpenseCategories.map((c) => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid gap-2">
-              <Label>المبلغ (د.ج)</Label>
-              <Input type="number" min={0} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
-            </div>
-            <div className="grid gap-2">
-              <Label>المورد / الجهة</Label>
-              <Input value={form.vendor} onChange={(e) => setForm({ ...form, vendor: e.target.value })} />
-            </div>
-            <div className="grid gap-2">
-              <Label>التاريخ</Label>
-              <Input type="date" value={form.occurred_on} onChange={(e) => setForm({ ...form, occurred_on: e.target.value })} />
-            </div>
-          </div>
-          <div className="flex items-center justify-between rounded-lg border border-border p-3">
-            <Label>تم الدفع</Label>
-            <Switch checked={form.is_paid} onCheckedChange={(v) => setForm({ ...form, is_paid: v })} />
+          <div className="grid gap-2">
+            <Label>التصنيف</Label>
+            <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
+              <SelectTrigger><SelectValue placeholder="اختر التصنيف" /></SelectTrigger>
+              <SelectContent>
+                {companyExpenseCategories.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="grid gap-2">
-            <Label>ملاحظات</Label>
+            <Label>المبلغ (د.ج)</Label>
+            <Input type="number" min={0} value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+          </div>
+          <div className="grid gap-2">
+            <Label>التاريخ</Label>
+            <Input type="date" value={form.occurred_on} onChange={(e) => setForm({ ...form, occurred_on: e.target.value })} />
+          </div>
+          <div className="grid gap-2">
+            <Label>ملاحظة</Label>
             <Textarea value={form.notes} maxLength={1000} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
           </div>
         </div>
