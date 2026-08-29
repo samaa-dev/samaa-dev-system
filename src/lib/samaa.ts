@@ -246,6 +246,26 @@ export function clampPercent(value: number) {
   return Math.min(100, Math.max(0, Math.round(value)));
 }
 
+/** Whole days since an ISO timestamp (null if invalid). */
+export function daysSinceIso(iso: string | null | undefined): number | null {
+  if (!iso) return null;
+  const then = new Date(iso);
+  if (Number.isNaN(then.getTime())) return null;
+  return Math.floor((Date.now() - then.getTime()) / 86_400_000);
+}
+
+/** Arabic relative «last updated» label for overview cards. */
+export function formatRelativeUpdatedAt(iso: string | null | undefined): string | null {
+  const days = daysSinceIso(iso);
+  if (days === null) return null;
+  if (days <= 0) return "اليوم";
+  if (days === 1) return "أمس";
+  if (days < 7) return `منذ ${days} أيام`;
+  if (days < 30) return `منذ ${Math.floor(days / 7)} أسابيع`;
+  if (days < 365) return `منذ ${Math.floor(days / 30)} أشهر`;
+  return `منذ ${Math.floor(days / 365)} سنة`;
+}
+
 /** Arabic UI labels for sprints (shown as «الدورات» in the product). */
 export const sprintUiLabels = {
   module: "الدورات",

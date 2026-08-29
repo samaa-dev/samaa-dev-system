@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, UserPlus } from "lucide-react";
 import { toast } from "sonner";
@@ -332,18 +332,44 @@ export function NewProjectDialog({ trigger }: TriggerProps) {
   );
 }
 
-export function NewTaskDialog({ trigger }: TriggerProps) {
-  const [open, setOpen] = useState(false);
+export function NewTaskDialog({
+  trigger,
+  defaultProjectId,
+  defaultSprintId,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+}: TriggerProps & {
+  defaultProjectId?: string;
+  defaultSprintId?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = controlledOnOpenChange ?? setInternalOpen;
   const queryClient = useQueryClient();
   const { data: projects = [] } = useQuery(projectsQuery());
   const { data: team = [] } = useQuery(teamQuery());
   const [form, setForm] = useState({
     title: "",
-    project_id: "",
+    project_id: defaultProjectId ?? "",
+    sprint_id: defaultSprintId ?? "",
     assignee_id: "",
     priority: "medium" as Priority,
     due_date: "",
   });
+
+  useEffect(() => {
+    if (!open) return;
+    setForm({
+      title: "",
+      project_id: defaultProjectId ?? "",
+      sprint_id: defaultSprintId ?? "",
+      assignee_id: "",
+      priority: "medium",
+      due_date: "",
+    });
+  }, [open, defaultProjectId, defaultSprintId]);
 
   const mutation = useMutation({
     mutationFn: async () =>
@@ -354,7 +380,7 @@ export function NewTaskDialog({ trigger }: TriggerProps) {
           title: form.title.trim(),
           description: null,
           project_id: form.project_id,
-          sprint_id: null,
+          sprint_id: form.sprint_id || null,
           assignee_id: form.assignee_id || null,
           status: "todo",
           priority: form.priority,
@@ -372,21 +398,13 @@ export function NewTaskDialog({ trigger }: TriggerProps) {
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
       toast.success("تمت إضافة المهمة");
       setOpen(false);
-      setForm({ title: "", project_id: "", assignee_id: "", priority: "medium", due_date: "" });
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger ?? (
-          <Button size="sm">
-            <Plus className="h-4 w-4" />
-            مهمة جديدة
-          </Button>
-        )}
-      </DialogTrigger>
+      {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>مهمة جديدة</DialogTitle>
@@ -474,18 +492,41 @@ export function NewTaskDialog({ trigger }: TriggerProps) {
   );
 }
 
-export function NewSprintDialog({ trigger }: TriggerProps) {
-  const [open, setOpen] = useState(false);
+export function NewSprintDialog({
+  trigger,
+  defaultProjectId,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
+}: TriggerProps & {
+  defaultProjectId?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const setOpen = controlledOnOpenChange ?? setInternalOpen;
   const queryClient = useQueryClient();
   const { data: projects = [] } = useQuery(projectsQuery());
   const [form, setForm] = useState({
     name: "",
-    project_id: "",
+    project_id: defaultProjectId ?? "",
     start_date: "",
     end_date: "",
     progress_mode: "manual" as SprintProgressMode,
     progress_percent: 0,
   });
+
+  useEffect(() => {
+    if (!open) return;
+    setForm({
+      name: "",
+      project_id: defaultProjectId ?? "",
+      start_date: "",
+      end_date: "",
+      progress_mode: "manual",
+      progress_percent: 0,
+    });
+  }, [open, defaultProjectId]);
 
   const mutation = useMutation({
     mutationFn: async () =>
@@ -510,21 +551,13 @@ export function NewSprintDialog({ trigger }: TriggerProps) {
       queryClient.invalidateQueries({ queryKey: ["sprints"] });
       toast.success(sprintUiLabels.created);
       setOpen(false);
-      setForm({ name: "", project_id: "", start_date: "", end_date: "", progress_mode: "manual", progress_percent: 0 });
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger ?? (
-          <Button size="sm">
-            <Plus className="h-4 w-4" />
-            {sprintUiLabels.new}
-          </Button>
-        )}
-      </DialogTrigger>
+      {trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{sprintUiLabels.new}</DialogTitle>

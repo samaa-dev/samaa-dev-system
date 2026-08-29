@@ -1,11 +1,12 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Hand, Pencil, RefreshCw } from "lucide-react";
+import { Hand, RefreshCw } from "lucide-react";
 import { doc, updateDoc } from "firebase/firestore";
 import { toast } from "sonner";
 
 import { ProgressModeFields } from "@/components/ProgressModeFields";
+import { CycleCardShortcuts } from "@/components/overview/BoardCardShortcuts";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +27,8 @@ import {
   cycleBoardStageChrome,
   cycleBoardStageLabels,
   cycleOperationalStages,
+  daysSinceIso,
+  formatRelativeUpdatedAt,
   sprintProgressModeLabels,
   sprintStatusForBoardStage,
   type CycleBoardStage,
@@ -64,6 +67,10 @@ export function CycleBoardCard({
         active_work: "bg-emerald-500/15",
         in_review: "bg-amber-500/15",
       }[stage as Exclude<CycleBoardStage, "completed">] ?? "bg-primary/12");
+
+  const updatedLabel = formatRelativeUpdatedAt(sprint.updated_at);
+  const staleDays = daysSinceIso(sprint.updated_at);
+  const isStale = staleDays !== null && staleDays >= 7 && !isCompleted;
 
   const card = (
     <div
@@ -119,7 +126,14 @@ export function CycleBoardCard({
             <RefreshCw className="h-3 w-3 text-muted-foreground" aria-label="تلقائي" />
           )}
           {canEdit ? (
-            <Pencil className="h-2.5 w-2.5 text-muted-foreground opacity-40 group-hover:opacity-100" />
+            <CycleCardShortcuts
+              sprintId={sprint.id}
+              projectId={sprint.project_id}
+              sprintName={sprint.name}
+              boardNote={sprint.board_note}
+              canEdit={canEdit}
+              onEdit={() => setOpen(true)}
+            />
           ) : null}
         </div>
       </div>
@@ -147,6 +161,16 @@ export function CycleBoardCard({
                 {sprintProgressModeLabels[mode]}
               </p>
               <p>{cycleBoardStageLabels[stage]}</p>
+              {updatedLabel ? (
+                <p className={cn(isStale && "text-amber-200")}>
+                  آخر تحديث: <span className="opacity-100">{updatedLabel}</span>
+                </p>
+              ) : null}
+              {sprint.board_note ? (
+                <p className="border-t border-primary-foreground/20 pt-1 opacity-100">
+                  {sprint.board_note}
+                </p>
+              ) : null}
             </div>
           </TooltipContent>
         </Tooltip>

@@ -1,11 +1,12 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Hand, Pencil, RefreshCw } from "lucide-react";
+import { Hand, RefreshCw } from "lucide-react";
 import { doc, updateDoc } from "firebase/firestore";
 import { toast } from "sonner";
 
 import { ProgressModeFields } from "@/components/ProgressModeFields";
+import { ProjectCardShortcuts } from "@/components/overview/BoardCardShortcuts";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +28,8 @@ import {
   boardStages,
   clampPercent,
   daysLeft,
+  daysSinceIso,
+  formatRelativeUpdatedAt,
   projectCompletedLabel,
   projectStatusForBoardStage,
   sprintProgressModeLabels,
@@ -76,6 +79,9 @@ export function ProjectBoardCard({
         ? `متأخر ${Math.abs(dl)} يوم`
         : `${dl} يوم متبقٍ`
       : null;
+  const updatedLabel = formatRelativeUpdatedAt(project.updated_at);
+  const staleDays = daysSinceIso(project.updated_at);
+  const isStale = staleDays !== null && staleDays >= 7 && !isCompleted;
 
   const card = (
     <div
@@ -132,7 +138,13 @@ export function ProjectBoardCard({
             <RefreshCw className="h-3 w-3 text-muted-foreground" aria-label="تلقائي" />
           )}
           {canEdit ? (
-            <Pencil className="h-2.5 w-2.5 text-muted-foreground opacity-40 group-hover:opacity-100" />
+            <ProjectCardShortcuts
+              projectId={project.id}
+              projectName={project.name}
+              boardNote={project.board_note}
+              canEdit={canEdit}
+              onEdit={() => setOpen(true)}
+            />
           ) : null}
         </div>
       </div>
@@ -162,6 +174,16 @@ export function ProjectBoardCard({
                   {deadlineLabel ? <p>{deadlineLabel}</p> : null}
                 </>
               )}
+              {updatedLabel ? (
+                <p className={cn(isStale && "text-amber-200")}>
+                  آخر تحديث: <span className="opacity-100">{updatedLabel}</span>
+                </p>
+              ) : null}
+              {project.board_note ? (
+                <p className="border-t border-primary-foreground/20 pt-1 opacity-100">
+                  {project.board_note}
+                </p>
+              ) : null}
             </div>
           </TooltipContent>
         </Tooltip>

@@ -52,6 +52,8 @@ export type Project = {
   progress_mode?: string | null;
   /** Sort order within an overview board column. */
   board_position?: number | null;
+  /** Short operational note shown on /overview hover. */
+  board_note?: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -93,6 +95,8 @@ export type Sprint = {
   progress_percent?: number | null;
   /** Sort order within an overview board column. */
   board_position?: number | null;
+  /** Short operational note shown on /overview hover. */
+  board_note?: string | null;
   created_at: string;
   updated_at: string;
 };
