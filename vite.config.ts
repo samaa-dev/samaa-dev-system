@@ -19,4 +19,8 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // Self-host on VPS (GitHub Actions → Node). Inside Lovable, Cloudflare still wins.
+  nitro: {
+    preset: "node-server",
+  },
 });
