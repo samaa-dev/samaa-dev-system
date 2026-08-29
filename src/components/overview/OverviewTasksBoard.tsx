@@ -23,7 +23,7 @@ import { doc, writeBatch } from "firebase/firestore";
 import { toast } from "sonner";
 
 import { TaskPulseDialog } from "@/components/overview/TaskPulseDialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getDb } from "@/integrations/firebase/client";
 import { nowIso, withFirebaseError } from "@/integrations/firebase/helpers";
 import type { Task } from "@/integrations/firebase/types";
@@ -200,6 +200,7 @@ export function OverviewTasksBoard({ tasks, projectNameById, canEdit }: Props) {
 
   return (
     <>
+      <TooltipProvider delayDuration={200}>
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
@@ -266,6 +267,7 @@ export function OverviewTasksBoard({ tasks, projectNameById, canEdit }: Props) {
           ) : null}
         </DragOverlay>
       </DndContext>
+      </TooltipProvider>
 
       <TaskPulseDialog
         task={pulseTask}
@@ -398,7 +400,7 @@ function TaskCard({
         ? "border-amber-400/40 bg-amber-500/5"
         : "border-sky-400/35 bg-sky-500/5";
 
-  return (
+  const card = (
     <div
       role={onOpen ? "button" : undefined}
       tabIndex={onOpen ? 0 : undefined}
@@ -433,11 +435,7 @@ function TaskCard({
         <p className="min-w-0 flex-1 truncate text-xs font-medium leading-snug text-foreground">
           {task.title}
         </p>
-        <div
-          className="flex shrink-0 items-center gap-1"
-          onClick={(e) => e.stopPropagation()}
-          onKeyDown={(e) => e.stopPropagation()}
-        >
+        <div className="flex shrink-0 items-center gap-1">
           {priority === "high" ? (
             <span
               className="text-destructive"
@@ -455,23 +453,26 @@ function TaskCard({
               <Flame className="h-3.5 w-3.5 fill-current opacity-90" />
             </span>
           ) : null}
-          <Popover>
-            <PopoverTrigger asChild>
-              <button
-                type="button"
-                className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-muted-foreground/45 bg-background text-[10px] font-bold leading-none text-muted-foreground transition-colors hover:border-primary/60 hover:text-primary"
-                aria-label={`المشروع: ${projectName}`}
-              >
-                !
-              </button>
-            </PopoverTrigger>
-            <PopoverContent align="end" side="top" className="w-auto px-2.5 py-1.5 text-xs">
-              <p className="text-muted-foreground">المشروع</p>
-              <p className="font-medium">{projectName}</p>
-            </PopoverContent>
-          </Popover>
+          <span
+            className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-muted-foreground/45 bg-background text-[10px] font-bold leading-none text-muted-foreground"
+            aria-hidden
+          >
+            !
+          </span>
         </div>
       </div>
     </div>
+  );
+
+  if (dragging) return card;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{card}</TooltipTrigger>
+      <TooltipContent side="top" align="center" className="max-w-[16rem]">
+        <p className="text-[10px] opacity-80">المشروع</p>
+        <p className="font-medium">{projectName}</p>
+      </TooltipContent>
+    </Tooltip>
   );
 }
