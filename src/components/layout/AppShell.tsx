@@ -1,6 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { LogOut, Menu } from "lucide-react";
+import { LogOut, Menu, PanelLeft, PanelLeftClose } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { AppSidebar } from "./AppSidebar";
@@ -17,9 +17,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useCurrentUser } from "@/hooks/use-auth";
+import { usePersistedToggle } from "@/hooks/use-persisted-toggle";
 import { roleLabels } from "@/lib/samaa";
 import { getFirebaseAuth } from "@/integrations/firebase/client";
 import { signOut } from "firebase/auth";
+
+const LS_SIDEBAR_COLLAPSED = "app.sidebarCollapsed";
 
 export function AppShell({
   title,
@@ -36,6 +39,7 @@ export function AppShell({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const [sidebarCollapsed, setSidebarCollapsed] = usePersistedToggle(LS_SIDEBAR_COLLAPSED);
 
   async function handleSignOut() {
     await queryClient.cancelQueries();
@@ -46,7 +50,10 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen w-full bg-background">
-      <AppSidebar />
+      <AppSidebar
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+      />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-border bg-background/85 px-4 py-3 backdrop-blur md:px-8">
@@ -60,6 +67,21 @@ export function AppShell({
               <AppSidebarMobile />
             </SheetContent>
           </Sheet>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="hidden md:inline-flex"
+            aria-label={sidebarCollapsed ? "توسيع القائمة الجانبية" : "طي القائمة الجانبية"}
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          >
+            {sidebarCollapsed ? (
+              <PanelLeft className="h-5 w-5" />
+            ) : (
+              <PanelLeftClose className="h-5 w-5" />
+            )}
+          </Button>
 
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-lg font-bold md:text-xl">{title}</h1>
@@ -110,11 +132,5 @@ export function AppShell({
 }
 
 function AppSidebarMobile() {
-  return (
-    <div className="flex h-full">
-      <div className="flex w-full flex-col [&>aside]:flex [&>aside]:w-full">
-        <AppSidebar />
-      </div>
-    </div>
-  );
+  return <AppSidebar showCollapseControl={false} className="flex w-full p-4" />;
 }

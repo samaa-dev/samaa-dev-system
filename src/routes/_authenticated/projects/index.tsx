@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { deleteDoc, doc, setDoc, updateDoc } from "firebase/firestore";
 
+import { ProgressModeFields } from "@/components/ProgressModeFields";
 import { AppShell } from "@/components/layout/AppShell";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
 import { DataTable } from "@/components/DataTable";
@@ -38,6 +39,7 @@ import {
   projectStatusLabels,
   statusTone,
   type ProjectStatus,
+  type SprintProgressMode,
 } from "@/lib/samaa";
 
 export const Route = createFileRoute("/_authenticated/projects/")({
@@ -162,16 +164,20 @@ type ProjectForm = {
   client_id: string;
   budget: string;
   deadline: string;
+  progress_mode: SprintProgressMode;
+  progress_percent: number;
 };
 
 function ProjectFormFields({
   form,
   setForm,
   clients,
+  showProgress = true,
 }: {
   form: ProjectForm;
   setForm: (f: ProjectForm) => void;
   clients: { id: string; name: string }[];
+  showProgress?: boolean;
 }) {
   return (
     <div className="grid gap-4">
@@ -200,6 +206,15 @@ function ProjectFormFields({
           <Input id="p-deadline" type="date" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} />
         </div>
       </div>
+      {showProgress ? (
+        <ProgressModeFields
+          mode={form.progress_mode}
+          onModeChange={(progress_mode) => setForm({ ...form, progress_mode })}
+          percent={form.progress_percent}
+          onPercentChange={(progress_percent) => setForm({ ...form, progress_percent })}
+          autoHint="تُحسب تلقائياً من مهام المشروع ومراحله"
+        />
+      ) : null}
     </div>
   );
 }
@@ -213,6 +228,8 @@ function NewProjectDialog() {
     client_id: "",
     budget: "",
     deadline: "",
+    progress_mode: "manual",
+    progress_percent: 0,
   });
 
   const mutation = useMutation({
@@ -227,7 +244,8 @@ function NewProjectDialog() {
           status: "planning",
           priority: "medium",
           board_stage: "waiting",
-          progress_percent: 0,
+          progress_mode: form.progress_mode,
+          progress_percent: form.progress_percent,
           budget: form.budget ? Number(form.budget) : 0,
           start_date: null,
           deadline: form.deadline || null,
@@ -240,7 +258,7 @@ function NewProjectDialog() {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       toast.success("تم إنشاء المشروع");
       setOpen(false);
-      setForm({ name: "", client_id: "", budget: "", deadline: "" });
+      setForm({ name: "", client_id: "", budget: "", deadline: "", progress_mode: "manual", progress_percent: 0 });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -287,6 +305,8 @@ function EditProjectDialog({
     client_id: project.client_id ?? "",
     budget: String(project.budget ?? ""),
     deadline: project.deadline?.slice(0, 10) ?? "",
+    progress_mode: project.progress_mode === "manual" ? "manual" : "auto",
+    progress_percent: Number(project.progress_percent ?? 0),
   });
 
   const mutation = useMutation({
@@ -297,6 +317,8 @@ function EditProjectDialog({
           client_id: form.client_id || null,
           budget: form.budget ? Number(form.budget) : 0,
           deadline: form.deadline || null,
+          progress_mode: form.progress_mode,
+          progress_percent: Math.min(100, Math.max(0, Math.round(form.progress_percent))),
           updated_at: nowIso(),
         });
       }),

@@ -4,6 +4,7 @@ import { Plus, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { doc, setDoc } from "firebase/firestore";
 
+import { ProgressModeFields } from "@/components/ProgressModeFields";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,7 +26,7 @@ import {
 import { getDb, getFirebaseAuth } from "@/integrations/firebase/client";
 import { newId, nowIso, withFirebaseError } from "@/integrations/firebase/helpers";
 import { clientsQuery, projectsQuery, teamQuery } from "@/lib/data";
-import { priorityLabels, sprintUiLabels, type Priority } from "@/lib/samaa";
+import { priorityLabels, sprintUiLabels, type Priority, type SprintProgressMode } from "@/lib/samaa";
 
 type TriggerProps = {
   trigger?: ReactNode;
@@ -140,6 +141,8 @@ export function NewProjectDialog({ trigger }: TriggerProps) {
     client_id: "",
     budget: "",
     deadline: "",
+    progress_mode: "manual" as SprintProgressMode,
+    progress_percent: 0,
   });
   const [clientDraft, setClientDraft] = useState({ name: "", phone: "", email: "" });
 
@@ -169,7 +172,8 @@ export function NewProjectDialog({ trigger }: TriggerProps) {
           status: "planning",
           priority: "medium",
           board_stage: "waiting",
-          progress_percent: 0,
+          progress_mode: form.progress_mode,
+          progress_percent: form.progress_percent,
           budget: form.budget ? Number(form.budget) : 0,
           start_date: null,
           deadline: form.deadline || null,
@@ -183,7 +187,7 @@ export function NewProjectDialog({ trigger }: TriggerProps) {
       toast.success("تم إنشاء المشروع");
       setOpen(false);
       setShowNewClient(false);
-      setForm({ name: "", client_id: "", budget: "", deadline: "" });
+      setForm({ name: "", client_id: "", budget: "", deadline: "", progress_mode: "manual", progress_percent: 0 });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -310,6 +314,13 @@ export function NewProjectDialog({ trigger }: TriggerProps) {
               />
             </div>
           </div>
+          <ProgressModeFields
+            mode={form.progress_mode}
+            onModeChange={(progress_mode) => setForm({ ...form, progress_mode })}
+            percent={form.progress_percent}
+            onPercentChange={(progress_percent) => setForm({ ...form, progress_percent })}
+            autoHint="تُحسب تلقائياً من مهام المشروع ومراحله"
+          />
         </div>
         <DialogFooter>
           <Button onClick={() => mutation.mutate()} disabled={!form.name.trim() || mutation.isPending}>
@@ -472,6 +483,8 @@ export function NewSprintDialog({ trigger }: TriggerProps) {
     project_id: "",
     start_date: "",
     end_date: "",
+    progress_mode: "manual" as SprintProgressMode,
+    progress_percent: 0,
   });
 
   const mutation = useMutation({
@@ -484,8 +497,9 @@ export function NewSprintDialog({ trigger }: TriggerProps) {
           goal: null,
           project_id: form.project_id,
           status: "planned",
-          progress_mode: "auto",
-          progress_percent: 0,
+          board_stage: "waiting",
+          progress_mode: form.progress_mode,
+          progress_percent: form.progress_percent,
           start_date: form.start_date || now.slice(0, 10),
           end_date: form.end_date || now.slice(0, 10),
           created_at: now,
@@ -496,7 +510,7 @@ export function NewSprintDialog({ trigger }: TriggerProps) {
       queryClient.invalidateQueries({ queryKey: ["sprints"] });
       toast.success(sprintUiLabels.created);
       setOpen(false);
-      setForm({ name: "", project_id: "", start_date: "", end_date: "" });
+      setForm({ name: "", project_id: "", start_date: "", end_date: "", progress_mode: "manual", progress_percent: 0 });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -560,6 +574,13 @@ export function NewSprintDialog({ trigger }: TriggerProps) {
               />
             </div>
           </div>
+          <ProgressModeFields
+            mode={form.progress_mode}
+            onModeChange={(progress_mode) => setForm({ ...form, progress_mode })}
+            percent={form.progress_percent}
+            onPercentChange={(progress_percent) => setForm({ ...form, progress_percent })}
+            autoHint="تُحسب تلقائياً من مهام الدورة"
+          />
         </div>
         <DialogFooter>
           <Button

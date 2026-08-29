@@ -5,6 +5,9 @@ export type TaskStatus = "backlog" | "todo" | "in_progress" | "review" | "done";
 export type Priority = "high" | "medium" | "low";
 export type SprintStatus = "planned" | "active" | "completed";
 export type BoardStage = "waiting" | "design" | "active_work" | "urgent_delivery";
+/** Includes operational lanes plus completed for /overview filtering. */
+export type ProjectBoardLane = BoardStage | "completed";
+export type CycleBoardStage = "waiting" | "active_work" | "in_review" | "completed";
 export type SprintProgressMode = "auto" | "manual";
 
 export const projectStatusLabels: Record<ProjectStatus, string> = {
@@ -128,6 +131,57 @@ export const boardStages: BoardStage[] = [
   "urgent_delivery",
 ];
 
+export const projectCompletedLabel = "مكتمل";
+
+export const cycleBoardStageLabels: Record<CycleBoardStage, string> = {
+  waiting: "قيد الانتظار",
+  active_work: "قيد العمل",
+  in_review: "قيد المراجعة",
+  completed: "مكتملة",
+};
+
+export const cycleBoardStageChrome: Record<
+  CycleBoardStage,
+  { header: string; count: string; border: string; accent: string }
+> = {
+  waiting: {
+    header: "bg-slate-500/15 text-slate-800 dark:text-slate-100",
+    count: "bg-slate-600 text-white dark:bg-slate-200 dark:text-slate-900",
+    border: "border-slate-400/40",
+    accent: "bg-slate-500",
+  },
+  active_work: {
+    header: "bg-emerald-500/15 text-emerald-900 dark:text-emerald-100",
+    count: "bg-emerald-600 text-white dark:bg-emerald-300 dark:text-emerald-950",
+    border: "border-emerald-400/40",
+    accent: "bg-emerald-500",
+  },
+  in_review: {
+    header: "bg-amber-500/20 text-amber-950 dark:text-amber-100",
+    count: "bg-amber-600 text-white dark:bg-amber-300 dark:text-amber-950",
+    border: "border-amber-500/50",
+    accent: "bg-amber-500",
+  },
+  completed: {
+    header: "bg-zinc-500/15 text-zinc-800 dark:text-zinc-100",
+    count: "bg-zinc-600 text-white dark:bg-zinc-300 dark:text-zinc-950",
+    border: "border-zinc-400/40",
+    accent: "bg-zinc-500",
+  },
+};
+
+export const cycleBoardStages: CycleBoardStage[] = [
+  "waiting",
+  "active_work",
+  "in_review",
+  "completed",
+];
+
+/** Active cycle lanes on /overview (excludes completed). */
+export const cycleOperationalStages = cycleBoardStages.filter(
+  (s): s is Exclude<CycleBoardStage, "completed"> => s !== "completed",
+);
+
 export const sprintProgressModeLabels: Record<SprintProgressMode, string> = {
   auto: "تلقائي",
   manual: "يدوي",
@@ -137,14 +191,53 @@ export const sprintProgressModeLabels: Record<SprintProgressMode, string> = {
 export function resolveBoardStage(project: {
   board_stage?: string | null;
   status: string;
-}): BoardStage | null {
-  if (project.status === "completed") return null;
+}): ProjectBoardLane {
+  if (project.status === "completed") return "completed";
   const raw = project.board_stage;
   if (raw === "waiting" || raw === "design" || raw === "active_work" || raw === "urgent_delivery") {
     return raw;
   }
   if (project.status === "active") return "active_work";
   if (project.status === "in_review") return "urgent_delivery";
+  return "waiting";
+}
+
+/** Map operational project board stage to Firestore status when leaving completed. */
+export function projectStatusForBoardStage(stage: BoardStage): ProjectStatus {
+  if (stage === "waiting") return "planning";
+  return "active";
+}
+
+/** Resolve cycle board lane for /overview when board_stage is missing. */
+export function resolveCycleBoardStage(sprint: {
+  board_stage?: string | null;
+  status: string;
+}): CycleBoardStage {
+  const raw = sprint.board_stage;
+  if (
+    raw === "waiting" ||
+    raw === "active_work" ||
+    raw === "in_review" ||
+    raw === "completed"
+  ) {
+    return raw;
+  }
+  if (sprint.status === "completed") return "completed";
+  if (sprint.status === "active") return "active_work";
+  return "waiting";
+}
+
+/** Map cycle board stage to Firestore sprint status. */
+export function sprintStatusForBoardStage(stage: CycleBoardStage): SprintStatus {
+  if (stage === "completed") return "completed";
+  if (stage === "waiting") return "planned";
+  return "active";
+}
+
+/** Map sprint status to overview board stage (when board_stage is not set explicitly). */
+export function cycleBoardStageForSprintStatus(status: string): CycleBoardStage {
+  if (status === "completed") return "completed";
+  if (status === "active") return "active_work";
   return "waiting";
 }
 

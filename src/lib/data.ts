@@ -293,3 +293,16 @@ export function projectManualProgress(project: Pick<Project, "progress_percent">
   const n = Number(project.progress_percent ?? 0);
   return Number.isNaN(n) ? 0 : Math.min(100, Math.max(0, Math.round(n)));
 }
+
+/** Project progress: auto from tasks/milestones, or stored manual percent. */
+export function resolveProjectProgress(
+  project: Pick<Project, "id" | "progress_mode" | "progress_percent">,
+  tasks: Task[],
+  milestones: Milestone[],
+) {
+  const mode = project.progress_mode === "manual" ? "manual" : "auto";
+  if (mode === "manual") return projectManualProgress(project);
+  const projectTasks = tasks.filter((t) => t.project_id === project.id);
+  const projectMilestones = milestones.filter((m) => m.project_id === project.id);
+  return projectProgress(projectTasks, projectMilestones);
+}

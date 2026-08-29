@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { deleteDoc, doc, setDoc, updateDoc } from "firebase/firestore";
 
+import { ProgressModeFields } from "@/components/ProgressModeFields";
 import { AppShell } from "@/components/layout/AppShell";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
 import { RowActions } from "@/components/RowActions";
@@ -33,8 +34,8 @@ import { useCurrentUser } from "@/hooks/use-auth";
 import { getDb } from "@/integrations/firebase/client";
 import type { Sprint } from "@/integrations/firebase/types";
 import { newId, nowIso, withFirebaseError } from "@/integrations/firebase/helpers";
-import { projectsQuery, sprintsQuery, tasksQuery } from "@/lib/data";
-import { formatDate, sprintStatusLabels, sprintUiLabels, statusTone, type SprintStatus } from "@/lib/samaa";
+import { projectsQuery, sprintsQuery, sprintProgress, tasksQuery } from "@/lib/data";
+import { formatDate, sprintStatusLabels, sprintUiLabels, statusTone, cycleBoardStageForSprintStatus, type SprintProgressMode, type SprintStatus } from "@/lib/samaa";
 
 export const Route = createFileRoute("/_authenticated/sprints/")({
   head: () => ({
@@ -86,9 +87,9 @@ function SprintsPage() {
           </p>
         ) : (
           sprints.map((s) => {
+            const pct = sprintProgress(s, tasks);
             const items = tasks.filter((t) => t.sprint_id === s.id);
             const done = items.filter((t) => t.status === "done").length;
-            const pct = items.length ? Math.round((done / items.length) * 100) : 0;
             return (
               <article key={s.id} className="panel p-5">
                 <div className="flex items-start justify-between gap-3">
@@ -148,6 +149,8 @@ type SprintForm = {
   status: SprintStatus;
   start_date: string;
   end_date: string;
+  progress_mode: SprintProgressMode;
+  progress_percent: number;
 };
 
 function SprintFormFields({
@@ -155,11 +158,13 @@ function SprintFormFields({
   setForm,
   projects,
   mode,
+  showProgress = true,
 }: {
   form: SprintForm;
   setForm: (f: SprintForm) => void;
   projects: { id: string; name: string }[];
   mode: "create" | "edit";
+  showProgress?: boolean;
 }) {
   return (
     <div className="grid gap-4">
@@ -205,6 +210,15 @@ function SprintFormFields({
           </div>
         </>
       ) : null}
+      {showProgress ? (
+        <ProgressModeFields
+          mode={form.progress_mode}
+          onModeChange={(progress_mode) => setForm({ ...form, progress_mode })}
+          percent={form.progress_percent}
+          onPercentChange={(progress_percent) => setForm({ ...form, progress_percent })}
+          autoHint="تُحسب تلقائياً من مهام الدورة"
+        />
+      ) : null}
     </div>
   );
 }
@@ -220,6 +234,8 @@ function NewSprintDialog() {
     status: "planned",
     start_date: "",
     end_date: "",
+    progress_mode: "manual",
+    progress_percent: 0,
   });
 
   const mutation = useMutation({
@@ -232,8 +248,9 @@ function NewSprintDialog() {
           goal: null,
           project_id: form.project_id,
           status: "planned",
-          progress_mode: "auto",
-          progress_percent: 0,
+          board_stage: "waiting",
+          progress_mode: form.progress_mode,
+          progress_percent: form.progress_percent,
           start_date: form.start_date || now.slice(0, 10),
           end_date: form.end_date || now.slice(0, 10),
           created_at: now,
@@ -244,7 +261,7 @@ function NewSprintDialog() {
       queryClient.invalidateQueries({ queryKey: ["sprints"] });
       toast.success(sprintUiLabels.created);
       setOpen(false);
-      setForm({ name: "", goal: "", project_id: "", status: "planned", start_date: "", end_date: "" });
+      setForm({ name: "", goal: "", project_id: "", status: "planned", start_date: "", end_date: "", progress_mode: "manual", progress_percent: 0 });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -285,6 +302,8 @@ function EditSprintDialog({
     status: sprint.status as SprintStatus,
     start_date: sprint.start_date?.slice(0, 10) ?? "",
     end_date: sprint.end_date?.slice(0, 10) ?? "",
+    progress_mode: sprint.progress_mode === "manual" ? "manual" : "auto",
+    progress_percent: Number(sprint.progress_percent ?? 0),
   });
 
   const mutation = useMutation({
@@ -295,8 +314,11 @@ function EditSprintDialog({
           goal: form.goal.trim() || null,
           project_id: form.project_id,
           status: form.status,
+          board_stage: cycleBoardStageForSprintStatus(form.status),
           start_date: form.start_date,
           end_date: form.end_date,
+          progress_mode: form.progress_mode,
+          progress_percent: Math.min(100, Math.max(0, Math.round(form.progress_percent))),
           updated_at: nowIso(),
         });
       }),

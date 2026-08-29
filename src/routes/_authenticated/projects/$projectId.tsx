@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { deleteDoc, doc, setDoc, updateDoc } from "firebase/firestore";
 
+import { ProgressModeFields } from "@/components/ProgressModeFields";
 import { AppShell } from "@/components/layout/AppShell";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
 import { ProjectPaymentForm } from "@/components/finance/ProjectPaymentForm";
@@ -38,8 +39,8 @@ import { newId, nowIso, withFirebaseError } from "@/integrations/firebase/helper
 import {
   clientsQuery,
   milestonesQuery,
-  projectProgress,
   projectQuery,
+  resolveProjectProgress,
   resourcesQuery,
   sprintsQuery,
   tasksQuery,
@@ -58,6 +59,7 @@ import {
   statusTone,
   taskStatusLabels,
   type ProjectStatus,
+  type SprintProgressMode,
   type SprintStatus,
   type TaskStatus,
 } from "@/lib/samaa";
@@ -187,7 +189,7 @@ function ProjectDetail() {
   );
   const spent = finance.expenses;
   const collected = finance.collected;
-  const pct = projectProgress(tasks, milestones);
+  const pct = project ? resolveProjectProgress(project, tasks, milestones) : 0;
   const dl = daysLeft(project?.deadline);
   const milestoneTitle = (id: string | null | undefined) =>
     id ? milestones.find((m) => m.id === id)?.title ?? "—" : "—";
@@ -547,6 +549,8 @@ function EditProjectDialog({
     status: project.status as ProjectStatus,
     budget: String(project.budget ?? ""),
     deadline: project.deadline?.slice(0, 10) ?? "",
+    progress_mode: (project.progress_mode === "manual" ? "manual" : "auto") as SprintProgressMode,
+    progress_percent: Number(project.progress_percent ?? 0),
   });
 
   const mutation = useMutation({
@@ -559,6 +563,8 @@ function EditProjectDialog({
           status: form.status,
           budget: form.budget ? Number(form.budget) : 0,
           deadline: form.deadline || null,
+          progress_mode: form.progress_mode,
+          progress_percent: Math.min(100, Math.max(0, Math.round(form.progress_percent))),
           updated_at: nowIso(),
         });
       }),
@@ -613,6 +619,13 @@ function EditProjectDialog({
               <Input type="date" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} />
             </div>
           </div>
+          <ProgressModeFields
+            mode={form.progress_mode}
+            onModeChange={(progress_mode) => setForm({ ...form, progress_mode })}
+            percent={form.progress_percent}
+            onPercentChange={(progress_percent) => setForm({ ...form, progress_percent })}
+            autoHint="تُحسب تلقائياً من مهام المشروع ومراحله"
+          />
         </div>
         <DialogFooter>
           <Button onClick={() => mutation.mutate()} disabled={!form.name.trim() || mutation.isPending}>

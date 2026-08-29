@@ -35,6 +35,7 @@ import { nowIso, withFirebaseError } from "@/integrations/firebase/helpers";
 import type { Sprint } from "@/integrations/firebase/types";
 import { projectsQuery, sprintQuery, tasksQuery } from "@/lib/data";
 import {
+  cycleBoardStageForSprintStatus,
   formatDate,
   priorityLabels,
   sprintProgressModeLabels,
@@ -206,6 +207,7 @@ function EditSprintDialog({
           goal: form.goal.trim() || null,
           project_id: form.project_id,
           status: form.status,
+          board_stage: cycleBoardStageForSprintStatus(form.status),
           progress_mode: form.progress_mode,
           progress_percent: Math.min(100, Math.max(0, Number(form.progress_percent || 0))),
           start_date: form.start_date,

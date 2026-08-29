@@ -8,22 +8,29 @@ import {
   NewSprintDialog,
   NewTaskDialog,
 } from "@/components/create/QuickCreateDialogs";
+import { CycleOverviewBoard } from "@/components/overview/CycleOverviewBoard";
 import { OverviewTasksBoard } from "@/components/overview/OverviewTasksBoard";
-import { CycleBoardCard } from "@/components/overview/CycleBoardCard";
 import { ProjectBoardCard } from "@/components/overview/ProjectBoardCard";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { useCurrentUser } from "@/hooks/use-auth";
-import { projectsQuery, sprintsQuery, tasksQuery } from "@/lib/data";
+import { usePersistedToggle } from "@/hooks/use-persisted-toggle";
+import { milestonesQuery, projectsQuery, sprintsQuery, tasksQuery } from "@/lib/data";
 import {
   boardStageChrome,
   boardStageLabels,
   boardStages,
+  projectCompletedLabel,
   resolveBoardStage,
-  sprintUiLabels,
   type BoardStage,
+  type ProjectBoardLane,
 } from "@/lib/samaa";
 import { cn } from "@/lib/utils";
+
+const LS_SHOW_COMPLETED_PROJECTS = "overview.showCompletedProjects";
+const LS_SHOW_COMPLETED_CYCLES = "overview.showCompletedCycles";
 
 export const Route = createFileRoute("/_authenticated/overview")({
   head: () => ({
@@ -31,7 +38,10 @@ export const Route = createFileRoute("/_authenticated/overview")({
       { title: "عرض الشركة — Samaa Dev" },
       { name: "description", content: "لوحة تشغيل الشركة: مراحل المشاريع، المهام والدورات." },
       { property: "og:title", content: "عرض الشركة — Samaa Dev" },
-      { property: "og:description", content: "متابعة مراحل المشاريع والتقدّم اليدوي والدورات في شاشة واحدة." },
+      {
+        property: "og:description",
+        content: "متابعة مراحل المشاريع والتقدّم اليدوي والدورات في شاشة واحدة.",
+      },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -42,35 +52,43 @@ function OverviewPage() {
   const { data: me } = useCurrentUser();
   const { data: projects = [] } = useQuery(projectsQuery());
   const { data: tasks = [] } = useQuery(tasksQuery());
+  const { data: milestones = [] } = useQuery(milestonesQuery());
   const { data: sprints = [] } = useQuery(sprintsQuery());
+
+  const [showCompletedProjects, setShowCompletedProjects] = usePersistedToggle(
+    LS_SHOW_COMPLETED_PROJECTS,
+  );
+  const [showCompletedCycles, setShowCompletedCycles] = usePersistedToggle(
+    LS_SHOW_COMPLETED_CYCLES,
+  );
 
   const canEditProjects = Boolean(me?.isStaff);
   const canEditSprints = Boolean(me);
   const canEditTasks = Boolean(me);
 
   const boardProjects = projects
-    .map((p) => {
-      const stage = resolveBoardStage(p);
-      return stage ? { project: p, stage } : null;
-    })
-    .filter((row): row is { project: (typeof projects)[number]; stage: BoardStage } => Boolean(row));
+    .map((p) => ({ project: p, stage: resolveBoardStage(p) }))
+    .filter((row) => row.stage !== "completed" || showCompletedProjects);
+
+  const operationalProjects = boardProjects.filter(
+    (r): r is { project: (typeof projects)[number]; stage: BoardStage } =>
+      r.stage !== "completed",
+  );
+
+  const completedProjects = boardProjects.filter(
+    (r): r is { project: (typeof projects)[number]; stage: "completed" } =>
+      r.stage === "completed",
+  );
 
   const byStage = boardStages.reduce(
     (acc, stage) => {
-      acc[stage] = boardProjects.filter((r) => r.stage === stage);
+      acc[stage] = operationalProjects.filter((r) => r.stage === stage);
       return acc;
     },
-    {} as Record<BoardStage, typeof boardProjects>,
+    {} as Record<BoardStage, typeof operationalProjects>,
   );
 
   const projectNameById = new Map(projects.map((p) => [p.id, p.name]));
-
-  const sortedSprints = [...sprints].sort((a, b) => {
-    const rank = (s: string) => (s === "active" ? 0 : s === "planned" ? 1 : 2);
-    const d = rank(a.status) - rank(b.status);
-    if (d !== 0) return d;
-    return (b.start_date ?? "").localeCompare(a.start_date ?? "");
-  });
 
   const visibleTasks = tasks
     .filter((t) => (me?.isStaff ? true : t.assignee_id === me?.id))
@@ -81,7 +99,29 @@ function OverviewPage() {
       title="عرض الشركة"
       description="مراحل المشاريع، المهام والدورات في نظرة واحدة"
       actions={
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted/30 px-3 py-1.5">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="show-completed-projects"
+                checked={showCompletedProjects}
+                onCheckedChange={setShowCompletedProjects}
+              />
+              <Label htmlFor="show-completed-projects" className="cursor-pointer text-xs">
+                إظهار المشاريع المكتملة
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="show-completed-cycles"
+                checked={showCompletedCycles}
+                onCheckedChange={setShowCompletedCycles}
+              />
+              <Label htmlFor="show-completed-cycles" className="cursor-pointer text-xs">
+                إظهار الدورات المكتملة
+              </Label>
+            </div>
+          </div>
           {canEditProjects ? (
             <>
               <NewProjectDialog
@@ -121,80 +161,103 @@ function OverviewPage() {
         </div>
       }
     >
-      <div className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {boardStages.map((stage) => {
-            const rows = byStage[stage];
-            const chrome = boardStageChrome[stage];
-            return (
-              <section
-                key={stage}
-                className={cn(
-                  "panel flex min-h-[18rem] flex-col overflow-hidden border p-0",
-                  chrome.border,
-                )}
-              >
-                <header
-                  className={cn(
-                    "relative flex items-center justify-between gap-3 px-3.5 py-3.5",
-                    chrome.header,
-                  )}
-                >
-                  <span
-                    className={cn("absolute inset-y-0 start-0 w-1.5", chrome.accent)}
-                    aria-hidden
-                  />
-                  <h2 className="ps-2 text-base font-bold tracking-tight leading-tight">
-                    {boardStageLabels[stage]}
-                  </h2>
-                  <span
+      <div className="grid gap-4 lg:grid-cols-4 lg:items-start">
+        <div className="space-y-4 lg:col-span-3">
+          <section className="panel p-3">
+            <h2 className="mb-2 text-sm font-semibold">المشاريع</h2>
+            <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
+              {boardStages.map((stage) => {
+                const rows = byStage[stage];
+                const chrome = boardStageChrome[stage];
+                return (
+                  <section
+                    key={stage}
                     className={cn(
-                      "inline-flex h-9 min-w-9 shrink-0 items-center justify-center rounded-xl px-2.5 text-lg font-black tabular-nums shadow-sm",
-                      chrome.count,
+                      "flex min-h-[14rem] flex-col overflow-hidden rounded-lg border p-0",
+                      chrome.border,
                     )}
                   >
-                    {rows.length}
-                  </span>
-                </header>
-                <div className="flex flex-1 flex-col gap-2.5 p-2.5">
-                  {rows.length === 0 ? (
-                    <div className="flex flex-1 flex-col items-center justify-center gap-2 py-8">
-                      <p className="text-xs text-muted-foreground">لا مشاريع</p>
-                      {canEditProjects && stage === "waiting" ? (
-                        <NewProjectDialog
-                          trigger={
-                            <Button size="sm" variant="ghost" className="h-8 text-xs">
-                              <FolderKanban className="h-3.5 w-3.5" />
-                              إضافة مشروع
-                            </Button>
-                          }
-                        />
-                      ) : null}
-                    </div>
-                  ) : (
-                    rows.map(({ project, stage: s }) => (
-                      <ProjectBoardCard
-                        key={project.id}
-                        project={project}
-                        stage={s}
-                        canEdit={canEditProjects}
+                    <header
+                      className={cn(
+                        "relative flex shrink-0 items-center justify-between gap-2 px-2 py-2",
+                        chrome.header,
+                      )}
+                    >
+                      <span
+                        className={cn("absolute inset-y-0 start-0 w-1", chrome.accent)}
+                        aria-hidden
                       />
-                    ))
-                  )}
-                </div>
-              </section>
-            );
-          })}
-        </div>
+                      <h3 className="ps-1.5 text-[11px] font-bold leading-tight">
+                        {boardStageLabels[stage]}
+                      </h3>
+                      <span
+                        className={cn(
+                          "inline-flex h-6 min-w-6 items-center justify-center rounded-lg px-1.5 text-xs font-black tabular-nums",
+                          chrome.count,
+                        )}
+                      >
+                        {rows.length}
+                      </span>
+                    </header>
+                    <div className="flex flex-1 flex-col gap-1.5 overflow-y-auto p-1.5">
+                      {rows.length === 0 ? (
+                        <div className="flex flex-1 flex-col items-center justify-center py-4">
+                          <p className="text-[10px] text-muted-foreground">لا مشاريع</p>
+                          {canEditProjects && stage === "waiting" ? (
+                            <NewProjectDialog
+                              trigger={
+                                <Button size="sm" variant="ghost" className="mt-1 h-7 text-[10px]">
+                                  <FolderKanban className="h-3 w-3" />
+                                  إضافة
+                                </Button>
+                              }
+                            />
+                          ) : null}
+                        </div>
+                      ) : (
+                        rows.map(({ project, stage: s }) => (
+                          <ProjectBoardCard
+                            key={project.id}
+                            project={project}
+                            stage={s}
+                            tasks={tasks}
+                            milestones={milestones}
+                            canEdit={canEditProjects}
+                          />
+                        ))
+                      )}
+                    </div>
+                  </section>
+                );
+              })}
+            </div>
 
-        <div className="grid gap-4 lg:grid-cols-4">
-          <section className="panel p-4 lg:col-span-3">
+            {showCompletedProjects && completedProjects.length > 0 ? (
+              <div className="mt-3 rounded-lg border border-zinc-400/40 bg-zinc-500/5 p-2">
+                <h3 className="mb-2 px-1 text-[11px] font-bold text-zinc-700 dark:text-zinc-200">
+                  {projectCompletedLabel} ({completedProjects.length})
+                </h3>
+                <div className="flex flex-col gap-1.5">
+                  {completedProjects.map(({ project, stage }) => (
+                    <ProjectBoardCard
+                      key={project.id}
+                      project={project}
+                      stage={stage as ProjectBoardLane}
+                      tasks={tasks}
+                      milestones={milestones}
+                      canEdit={canEditProjects}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </section>
+
+          <section className="panel p-4">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h2 className="text-sm font-semibold">المهام المفتوحة</h2>
-                <p className="text-[11px] text-muted-foreground">
-                  انتظار، عمل، ومكتملات اليوم فقط
-                </p>
+                <p className="text-[11px] text-muted-foreground">اسحب بين الانتظار والعمل · انقر للتفاصيل</p>
               </div>
               <div className="flex items-center gap-1.5">
                 <NewTaskDialog
@@ -216,41 +279,17 @@ function OverviewPage() {
               canEdit={canEditTasks}
             />
           </section>
-
-          <aside className="panel flex min-h-[12rem] flex-col p-3 lg:col-span-1">
-            <header className="mb-3 flex items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold">{sprintUiLabels.module}</h2>
-              <div className="flex items-center gap-1.5">
-                <NewSprintDialog
-                  trigger={
-                    <Button size="sm" variant="outline" className="h-8 px-2">
-                      <Timer className="h-3.5 w-3.5" />
-                      جديدة
-                    </Button>
-                  }
-                />
-                <Button asChild size="sm" variant="ghost" className="h-8 px-2">
-                  <Link to="/sprints">الكل</Link>
-                </Button>
-              </div>
-            </header>
-            <div className="flex flex-1 flex-col gap-3">
-              {sortedSprints.length === 0 ? (
-                <p className="py-10 text-center text-sm text-muted-foreground">{sprintUiLabels.empty}</p>
-              ) : (
-                sortedSprints.map((s) => (
-                  <CycleBoardCard
-                    key={s.id}
-                    sprint={s}
-                    projectName={projectNameById.get(s.project_id) ?? ""}
-                    tasks={tasks}
-                    canEdit={canEditSprints}
-                  />
-                ))
-              )}
-            </div>
-          </aside>
         </div>
+
+        <section className="panel min-h-[32rem] p-3 lg:col-span-1 lg:sticky lg:top-4">
+          <CycleOverviewBoard
+            sprints={sprints}
+            tasks={tasks}
+            projectNameById={projectNameById}
+            canEdit={canEditSprints}
+            showCompleted={showCompletedCycles}
+          />
+        </section>
       </div>
     </AppShell>
   );

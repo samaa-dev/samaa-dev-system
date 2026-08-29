@@ -18,17 +18,17 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, ChevronDown, GripVertical, MessageCircle } from "lucide-react";
+import { CheckCircle2, ChevronDown, GripVertical, Zap } from "lucide-react";
 import { doc, writeBatch } from "firebase/firestore";
 import { toast } from "sonner";
 
 import { TaskPulseDialog } from "@/components/overview/TaskPulseDialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { getDb } from "@/integrations/firebase/client";
 import { nowIso, withFirebaseError } from "@/integrations/firebase/helpers";
 import type { Task } from "@/integrations/firebase/types";
 import {
   overviewTaskLaneLabels,
-  priorityLabels,
   resolveOverviewTaskLane,
   type Priority,
   type TaskStatus,
@@ -226,8 +226,7 @@ export function OverviewTasksBoard({ tasks, projectNameById, canEdit }: Props) {
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-success" />
               <div>
-                <p className="text-sm font-semibold">المهام المكتملة اليوم</p>
-                <p className="text-[11px] text-muted-foreground">عرض هادئ بعيد عن التشتيت</p>
+                <p className="text-sm font-semibold">مكتملة اليوم</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -310,9 +309,9 @@ function TaskColumn({
         </span>
       </header>
       <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-        <div className="flex flex-1 flex-col gap-2">
+        <div className="flex flex-1 flex-col gap-1.5">
           {tasks.length === 0 ? (
-            <p className="py-6 text-center text-[11px] text-muted-foreground">اسحب مهمة هنا</p>
+            <p className="py-6 text-center text-[10px] text-muted-foreground">اسحب مهمة هنا</p>
           ) : (
             tasks.map((t) => (
               <SortableTaskCard
@@ -363,12 +362,12 @@ function SortableTaskCard({
           canEdit ? (
             <button
               type="button"
-              className="mt-0.5 touch-none rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="shrink-0 touch-none rounded p-0.5 text-muted-foreground/60 hover:bg-muted hover:text-foreground"
               aria-label="سحب المهمة"
               {...attributes}
               {...listeners}
             >
-              <GripVertical className="h-3.5 w-3.5" />
+              <GripVertical className="h-3 w-3" />
             </button>
           ) : null
         }
@@ -391,13 +390,13 @@ function TaskCard({
   onOpen?: () => void;
 }) {
   const priority = task.priority as Priority;
-  const note = task.description?.trim();
+  const isUrgent = priority === "high";
   const priorityCardClass =
     priority === "high"
-      ? "border-destructive/40 bg-destructive/5"
+      ? "border-destructive/45 bg-destructive/5"
       : priority === "medium"
-        ? "border-amber-400/45 bg-amber-500/5"
-        : "border-sky-400/40 bg-sky-500/5";
+        ? "border-amber-400/40 bg-amber-500/5"
+        : "border-sky-400/35 bg-sky-500/5";
 
   return (
     <div
@@ -415,13 +414,13 @@ function TaskCard({
           : undefined
       }
       className={cn(
-        "rounded-lg border bg-card p-2.5 shadow-sm transition-all",
+        "rounded-md border bg-card px-1.5 py-1.5 shadow-sm transition-all",
         priorityCardClass,
         dragging && "shadow-lg ring-2 ring-primary/30",
         onOpen && "cursor-pointer hover:border-primary/35 hover:shadow-md",
       )}
     >
-      <div className="flex items-start gap-1.5">
+      <div className="flex items-center gap-1">
         {dragHandle ? (
           <span
             onClick={(e) => e.stopPropagation()}
@@ -431,20 +430,38 @@ function TaskCard({
             {dragHandle}
           </span>
         ) : null}
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium leading-snug">{task.title}</p>
-          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{projectName}</p>
-          {note ? (
-            <p className="mt-1.5 line-clamp-2 flex items-start gap-1 text-[11px] leading-snug text-muted-foreground">
-              <MessageCircle className="mt-0.5 h-3 w-3 shrink-0 text-primary/70" />
-              <span>{note}</span>
-            </p>
-          ) : null}
-          <div className="mt-2 flex flex-wrap gap-1">
-            <span className="text-[10px] font-medium text-muted-foreground">
-              {priorityLabels[priority] ?? task.priority}
+        <p className="min-w-0 flex-1 truncate text-xs font-medium leading-snug text-foreground">
+          {task.title}
+        </p>
+        <div
+          className="flex shrink-0 items-center gap-0.5"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          {isUrgent ? (
+            <span
+              className="text-destructive"
+              title="استعجال"
+              aria-label="استعجال — أولوية عالية"
+            >
+              <Zap className="h-3.5 w-3.5 fill-current" />
             </span>
-          </div>
+          ) : null}
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="rounded px-0.5 text-[11px] font-black leading-none text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                aria-label={`المشروع: ${projectName}`}
+              >
+                !
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" side="top" className="w-auto px-2.5 py-1.5 text-xs">
+              <p className="text-muted-foreground">المشروع</p>
+              <p className="font-medium">{projectName}</p>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
     </div>
