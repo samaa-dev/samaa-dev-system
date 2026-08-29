@@ -77,9 +77,15 @@ type Props = {
   tasks: Task[];
   projectNameById: Map<string, string>;
   canEdit: boolean;
+  layout?: "wide" | "sidebar";
 };
 
-export function OverviewTasksBoard({ tasks, projectNameById, canEdit }: Props) {
+export function OverviewTasksBoard({
+  tasks,
+  projectNameById,
+  canEdit,
+  layout = "wide",
+}: Props) {
   const queryClient = useQueryClient();
   const [items, setItems] = useState(tasks);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -200,14 +206,14 @@ export function OverviewTasksBoard({ tasks, projectNameById, canEdit }: Props) {
 
   return (
     <>
-      <TooltipProvider delayDuration={200}>
+      <TooltipProvider delayDuration={250} skipDelayDuration={80} disableHoverableContent>
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
       >
-        <div className="grid gap-3 lg:grid-cols-2">
+        <div className={cn("grid gap-3", layout === "sidebar" ? "grid-cols-1" : "lg:grid-cols-2")}>
           {overviewColumns.map((status) => (
             <TaskColumn
               key={status}
@@ -215,6 +221,7 @@ export function OverviewTasksBoard({ tasks, projectNameById, canEdit }: Props) {
               tasks={byStatus[status]}
               projectNameById={projectNameById}
               canEdit={canEdit}
+              layout={layout}
               onOpenPulse={setPulseTask}
             />
           ))}
@@ -286,12 +293,14 @@ function TaskColumn({
   tasks,
   projectNameById,
   canEdit,
+  layout,
   onOpenPulse,
 }: {
   status: TaskStatus;
   tasks: Task[];
   projectNameById: Map<string, string>;
   canEdit: boolean;
+  layout: "wide" | "sidebar";
   onOpenPulse: (task: Task) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
@@ -301,6 +310,7 @@ function TaskColumn({
       ref={setNodeRef}
       className={cn(
         "flex min-h-[12rem] flex-col rounded-xl border p-2.5 transition-colors",
+        layout === "sidebar" && "min-h-[8rem]",
         columnChrome[status],
         isOver && "ring-2 ring-primary/40",
       )}
@@ -467,9 +477,9 @@ function TaskCard({
   if (dragging) return card;
 
   return (
-    <Tooltip>
+    <Tooltip disableHoverableContent>
       <TooltipTrigger asChild>{card}</TooltipTrigger>
-      <TooltipContent side="top" align="center" className="max-w-[16rem]">
+      <TooltipContent side="left" align="start" collisionPadding={8} className="max-w-[16rem]">
         <p className="text-[10px] opacity-80">المشروع</p>
         <p className="font-medium">{projectName}</p>
       </TooltipContent>

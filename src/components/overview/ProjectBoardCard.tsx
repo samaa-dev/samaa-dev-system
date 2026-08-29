@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Hand, Pencil, RefreshCw } from "lucide-react";
@@ -6,6 +6,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import { toast } from "sonner";
 
 import { ProgressModeFields } from "@/components/ProgressModeFields";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,7 +17,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
 import { getDb } from "@/integrations/firebase/client";
 import { nowIso, withFirebaseError } from "@/integrations/firebase/helpers";
 import type { Milestone, Project, Task } from "@/integrations/firebase/types";
@@ -29,6 +29,7 @@ import {
   daysLeft,
   projectCompletedLabel,
   projectStatusForBoardStage,
+  sprintProgressModeLabels,
   type BoardStage,
   type ProjectBoardLane,
   type SprintProgressMode,
@@ -41,64 +42,130 @@ type Props = {
   tasks: Task[];
   milestones: Milestone[];
   canEdit: boolean;
+  dragHandle?: ReactNode;
+  dragging?: boolean;
 };
 
-export function ProjectBoardCard({ project, stage, tasks, milestones, canEdit }: Props) {
+export function ProjectBoardCard({
+  project,
+  stage,
+  tasks,
+  milestones,
+  canEdit,
+  dragHandle,
+  dragging,
+}: Props) {
   const [open, setOpen] = useState(false);
   const mode: SprintProgressMode = project.progress_mode === "manual" ? "manual" : "auto";
   const pct = resolveProjectProgress(project, tasks, milestones);
   const dl = daysLeft(project.deadline);
   const isCompleted = stage === "completed";
   const accent = isCompleted ? "bg-zinc-500" : boardStageChrome[stage].accent;
+  const progressFill = isCompleted
+    ? "bg-zinc-500/15"
+    : ({
+        waiting: "bg-slate-500/15",
+        design: "bg-sky-500/15",
+        active_work: "bg-emerald-500/15",
+        urgent_delivery: "bg-amber-500/15",
+      }[stage as BoardStage] ?? "bg-primary/12");
+
+  const deadlineLabel =
+    !isCompleted && dl !== null
+      ? dl < 0
+        ? `متأخر ${Math.abs(dl)} يوم`
+        : `${dl} يوم متبقٍ`
+      : null;
+
+  const card = (
+    <div
+      role={canEdit ? "button" : undefined}
+      tabIndex={canEdit ? 0 : undefined}
+      onClick={() => canEdit && setOpen(true)}
+      onKeyDown={
+        canEdit
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setOpen(true);
+              }
+            }
+          : undefined
+      }
+      className={cn(
+        "group relative w-full overflow-hidden rounded-lg border border-border bg-card text-start transition-all",
+        canEdit &&
+          "cursor-pointer hover:border-primary/35 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        !canEdit && "cursor-default",
+        dragging && "shadow-lg ring-2 ring-primary/30",
+      )}
+    >
+      <div
+        className={cn("absolute inset-y-0 start-0 transition-[width] duration-300", progressFill)}
+        style={{ width: `${pct}%` }}
+        aria-hidden
+      />
+      <span className={cn("absolute inset-y-0 start-0 z-[1] w-0.5", accent)} aria-hidden />
+      <div className="relative z-[2] flex items-center gap-1 px-2 py-1.5">
+        {dragHandle ? (
+          <span
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            className="shrink-0"
+          >
+            {dragHandle}
+          </span>
+        ) : null}
+        <Link
+          to="/projects/$projectId"
+          params={{ projectId: project.id }}
+          className="min-w-0 flex-1 truncate text-xs font-semibold leading-snug hover:text-primary"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {project.name}
+        </Link>
+        <span className="shrink-0 text-[11px] font-bold tabular-nums text-primary">{pct}%</span>
+        <div className="flex shrink-0 items-center gap-0.5">
+          {mode === "manual" ? (
+            <Hand className="h-3 w-3 text-muted-foreground" aria-label="يدوي" />
+          ) : (
+            <RefreshCw className="h-3 w-3 text-muted-foreground" aria-label="تلقائي" />
+          )}
+          {canEdit ? (
+            <Pencil className="h-2.5 w-2.5 text-muted-foreground opacity-40 group-hover:opacity-100" />
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => canEdit && setOpen(true)}
-        disabled={!canEdit}
-        className={cn(
-          "group relative w-full overflow-hidden rounded-lg border border-border bg-card p-2.5 text-start transition-all",
-          canEdit &&
-            "cursor-pointer hover:border-primary/35 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          !canEdit && "cursor-default",
-        )}
-      >
-        <span className={cn("absolute inset-y-0 start-0 w-0.5", accent)} aria-hidden />
-        <div className="flex items-start justify-between gap-1.5 ps-1">
-          <Link
-            to="/projects/$projectId"
-            params={{ projectId: project.id }}
-            className="min-w-0 truncate text-xs font-semibold leading-snug hover:text-primary"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {project.name}
-          </Link>
-          <div className="flex shrink-0 items-center gap-1">
-            {mode === "manual" ? (
-              <Hand className="h-3 w-3 text-muted-foreground" aria-label="يدوي" />
-            ) : (
-              <RefreshCw className="h-3 w-3 text-muted-foreground" aria-label="تلقائي" />
-            )}
-            {canEdit ? (
-              <Pencil className="h-2.5 w-2.5 text-muted-foreground opacity-40 group-hover:opacity-100" />
-            ) : null}
-          </div>
-        </div>
-
-        {!isCompleted && dl !== null ? (
-          <p className="mt-1 ps-1 text-[10px] text-muted-foreground">
-            {dl < 0 ? `متأخر ${Math.abs(dl)}ي` : `${dl}ي متبقٍ`}
-          </p>
-        ) : null}
-
-        <div className="mt-1.5 flex items-center gap-2 ps-1">
-          <Progress value={pct} className="h-1.5 flex-1" />
-          <span className="min-w-[2rem] text-end text-[11px] font-bold tabular-nums text-primary">
-            {pct}%
-          </span>
-        </div>
-      </button>
+      {dragging ? (
+        card
+      ) : (
+        <Tooltip disableHoverableContent>
+          <TooltipTrigger asChild>{card}</TooltipTrigger>
+          <TooltipContent side="left" align="start" collisionPadding={8} className="max-w-[18rem]">
+            <p className="font-medium leading-snug">{project.name}</p>
+            <div className="mt-1.5 space-y-0.5 text-[10px] opacity-90">
+              <p>
+                التقدّم: <span className="font-semibold opacity-100">{pct}%</span>
+                {" · "}
+                {sprintProgressModeLabels[mode]}
+              </p>
+              {isCompleted ? (
+                <p>{projectCompletedLabel}</p>
+              ) : (
+                <>
+                  <p>{boardStageLabels[stage as BoardStage]}</p>
+                  {deadlineLabel ? <p>{deadlineLabel}</p> : null}
+                </>
+              )}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      )}
 
       {canEdit ? (
         <EditProjectBoardDialog

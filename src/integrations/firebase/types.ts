@@ -50,6 +50,8 @@ export type Project = {
   progress_percent?: number | null;
   /** auto = from tasks/milestones; manual = use progress_percent. */
   progress_mode?: string | null;
+  /** Sort order within an overview board column. */
+  board_position?: number | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -89,6 +91,8 @@ export type Sprint = {
   /** auto = from tasks; manual = use progress_percent. */
   progress_mode?: string | null;
   progress_percent?: number | null;
+  /** Sort order within an overview board column. */
+  board_position?: number | null;
   created_at: string;
   updated_at: string;
 };

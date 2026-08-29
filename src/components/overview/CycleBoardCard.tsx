@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Hand, Pencil, RefreshCw } from "lucide-react";
@@ -6,6 +6,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import { toast } from "sonner";
 
 import { ProgressModeFields } from "@/components/ProgressModeFields";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,15 +17,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
 import { getDb } from "@/integrations/firebase/client";
 import { nowIso, withFirebaseError } from "@/integrations/firebase/helpers";
 import type { Sprint, Task } from "@/integrations/firebase/types";
 import { sprintProgress } from "@/lib/data";
 import {
   clampPercent,
+  cycleBoardStageChrome,
   cycleBoardStageLabels,
   cycleOperationalStages,
+  sprintProgressModeLabels,
   sprintStatusForBoardStage,
   type CycleBoardStage,
   type SprintProgressMode,
@@ -37,51 +39,118 @@ type Props = {
   projectName?: string | undefined;
   tasks: Task[];
   canEdit: boolean;
+  dragHandle?: ReactNode;
+  dragging?: boolean;
 };
 
-export function CycleBoardCard({ sprint, stage, projectName, tasks, canEdit }: Props) {
+export function CycleBoardCard({
+  sprint,
+  stage,
+  projectName,
+  tasks,
+  canEdit,
+  dragHandle,
+  dragging,
+}: Props) {
   const [open, setOpen] = useState(false);
   const mode: SprintProgressMode = sprint.progress_mode === "manual" ? "manual" : "auto";
   const pct = sprintProgress(sprint, tasks);
+  const isCompleted = stage === "completed";
+  const accent = cycleBoardStageChrome[stage].accent;
+  const progressFill = isCompleted
+    ? "bg-zinc-500/15"
+    : ({
+        waiting: "bg-slate-500/15",
+        active_work: "bg-emerald-500/15",
+        in_review: "bg-amber-500/15",
+      }[stage as Exclude<CycleBoardStage, "completed">] ?? "bg-primary/12");
+
+  const card = (
+    <div
+      role={canEdit ? "button" : undefined}
+      tabIndex={canEdit ? 0 : undefined}
+      onClick={() => canEdit && setOpen(true)}
+      onKeyDown={
+        canEdit
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setOpen(true);
+              }
+            }
+          : undefined
+      }
+      className={cn(
+        "group relative w-full overflow-hidden rounded-lg border border-border bg-card text-start transition-all",
+        canEdit && "cursor-pointer hover:border-primary/35 hover:shadow-sm",
+        !canEdit && "cursor-default",
+        dragging && "shadow-lg ring-2 ring-primary/30",
+      )}
+    >
+      <div
+        className={cn("absolute inset-y-0 start-0 transition-[width] duration-300", progressFill)}
+        style={{ width: `${pct}%` }}
+        aria-hidden
+      />
+      <span className={cn("absolute inset-y-0 start-0 z-[1] w-0.5", accent)} aria-hidden />
+      <div className="relative z-[2] flex items-center gap-1 px-2 py-1.5">
+        {dragHandle ? (
+          <span
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            className="shrink-0"
+          >
+            {dragHandle}
+          </span>
+        ) : null}
+        <Link
+          to="/sprints/$sprintId"
+          params={{ sprintId: sprint.id }}
+          className="min-w-0 flex-1 truncate text-xs font-semibold leading-snug hover:text-primary"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {sprint.name}
+        </Link>
+        <span className="shrink-0 text-[11px] font-bold tabular-nums text-primary">{pct}%</span>
+        <div className="flex shrink-0 items-center gap-0.5">
+          {mode === "manual" ? (
+            <Hand className="h-3 w-3 text-muted-foreground" aria-label="يدوي" />
+          ) : (
+            <RefreshCw className="h-3 w-3 text-muted-foreground" aria-label="تلقائي" />
+          )}
+          {canEdit ? (
+            <Pencil className="h-2.5 w-2.5 text-muted-foreground opacity-40 group-hover:opacity-100" />
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => canEdit && setOpen(true)}
-        disabled={!canEdit}
-        className={cn(
-          "group w-full rounded-md border border-border bg-card px-2 py-1.5 text-start transition-all",
-          canEdit && "cursor-pointer hover:border-primary/35 hover:shadow-sm",
-          !canEdit && "cursor-default",
-        )}
-      >
-        <div className="flex items-center justify-between gap-1">
-          <Link
-            to="/sprints/$sprintId"
-            params={{ sprintId: sprint.id }}
-            className="min-w-0 truncate text-[11px] font-semibold hover:text-primary"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {sprint.name}
-          </Link>
-          <div className="flex shrink-0 items-center gap-1">
-            {mode === "manual" ? (
-              <Hand className="h-3 w-3 text-muted-foreground" aria-label="يدوي" />
-            ) : (
-              <RefreshCw className="h-3 w-3 text-muted-foreground" aria-label="تلقائي" />
-            )}
-            <span className="text-[10px] font-bold tabular-nums text-primary">{pct}%</span>
-            {canEdit ? (
-              <Pencil className="h-2.5 w-2.5 text-muted-foreground opacity-40 group-hover:opacity-100" />
-            ) : null}
-          </div>
-        </div>
-        {projectName ? (
-          <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{projectName}</p>
-        ) : null}
-        <Progress value={pct} className="mt-1 h-1" />
-      </button>
+      {dragging ? (
+        card
+      ) : (
+        <Tooltip disableHoverableContent>
+          <TooltipTrigger asChild>{card}</TooltipTrigger>
+          <TooltipContent side="left" align="start" collisionPadding={8} className="max-w-[18rem]">
+            <p className="font-medium leading-snug">{sprint.name}</p>
+            <div className="mt-1.5 space-y-0.5 text-[10px] opacity-90">
+              {projectName ? (
+                <p>
+                  المشروع: <span className="opacity-100">{projectName}</span>
+                </p>
+              ) : null}
+              <p>
+                التقدّم: <span className="font-semibold opacity-100">{pct}%</span>
+                {" · "}
+                {sprintProgressModeLabels[mode]}
+              </p>
+              <p>{cycleBoardStageLabels[stage]}</p>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      )}
 
       {canEdit ? (
         <EditCycleBoardDialog
