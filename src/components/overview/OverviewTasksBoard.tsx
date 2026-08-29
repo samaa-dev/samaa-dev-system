@@ -18,7 +18,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, ChevronDown, GripVertical, Zap } from "lucide-react";
+import { CheckCircle2, ChevronDown, Flame, GripVertical, Zap } from "lucide-react";
 import { doc, writeBatch } from "firebase/firestore";
 import { toast } from "sonner";
 
@@ -30,6 +30,7 @@ import type { Task } from "@/integrations/firebase/types";
 import {
   overviewTaskLaneLabels,
   resolveOverviewTaskLane,
+  priorityLabels,
   type Priority,
   type TaskStatus,
 } from "@/lib/samaa";
@@ -390,7 +391,6 @@ function TaskCard({
   onOpen?: () => void;
 }) {
   const priority = task.priority as Priority;
-  const isUrgent = priority === "high";
   const priorityCardClass =
     priority === "high"
       ? "border-destructive/45 bg-destructive/5"
@@ -434,24 +434,32 @@ function TaskCard({
           {task.title}
         </p>
         <div
-          className="flex shrink-0 items-center gap-0.5"
+          className="flex shrink-0 items-center gap-1"
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
         >
-          {isUrgent ? (
+          {priority === "high" ? (
             <span
               className="text-destructive"
-              title="استعجال"
-              aria-label="استعجال — أولوية عالية"
+              title={`أولوية ${priorityLabels.high}`}
+              aria-label={`استعجال — أولوية ${priorityLabels.high}`}
             >
               <Zap className="h-3.5 w-3.5 fill-current" />
+            </span>
+          ) : priority === "medium" ? (
+            <span
+              className="text-amber-600 dark:text-amber-400"
+              title={`أولوية ${priorityLabels.medium}`}
+              aria-label={`أولوية ${priorityLabels.medium}`}
+            >
+              <Flame className="h-3.5 w-3.5 fill-current opacity-90" />
             </span>
           ) : null}
           <Popover>
             <PopoverTrigger asChild>
               <button
                 type="button"
-                className="rounded px-0.5 text-[11px] font-black leading-none text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-muted-foreground/45 bg-background text-[10px] font-bold leading-none text-muted-foreground transition-colors hover:border-primary/60 hover:text-primary"
                 aria-label={`المشروع: ${projectName}`}
               >
                 !
