@@ -81,6 +81,31 @@
         { "fieldPath": "tx_type", "order": "ASCENDING" },
         { "fieldPath": "occurred_on", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "site_projects",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "is_featured", "order": "DESCENDING" },
+        { "fieldPath": "sort_order", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "site_projects",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "sort_order", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "site_testimonials",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "is_visible", "order": "ASCENDING" },
+        { "fieldPath": "sort_order", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

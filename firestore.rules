@@ -144,5 +144,136 @@ service cloud.firestore {
       allow create, update: if isStaff();
       allow delete: if isAdmin();
     }
+
+    // ── Public website CMS (site_*) ──
+
+    match /site_settings/{key} {
+      allow read: if true;
+      allow create, update, delete: if isStaff();
+    }
+
+    match /site_categories/{id} {
+      allow read: if true;
+      allow create, update, delete: if isStaff();
+    }
+
+    match /site_projects/{id} {
+      allow read: if resource.data.status == 'published' || isStaff();
+      allow create, update, delete: if isStaff();
+    }
+
+    match /site_testimonials/{id} {
+      allow read: if resource.data.is_visible == true || isStaff();
+      allow create, update, delete: if isStaff();
+    }
+
+    match /site_leads/{id} {
+      allow create: if request.resource.data.keys().hasAll([
+          'name', 'email', 'phone', 'service_type', 'project_details', 'status', 'created_at'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.email is string
+        && request.resource.data.email.size() > 3
+        && request.resource.data.email.size() <= 200
+        && request.resource.data.phone is string
+        && request.resource.data.phone.size() <= 40
+        && request.resource.data.service_type is string
+        && request.resource.data.service_type.size() <= 120
+        && request.resource.data.project_details is string
+        && request.resource.data.project_details.size() <= 4000
+        && request.resource.data.status == 'new'
+        && request.resource.data.created_at is string;
+      allow read, update, delete: if isStaff();
+    }
+
+    match /site_audit_leads/{id} {
+      function auditCreateValid() {
+        return request.resource.data.keys().hasAll([
+            'name', 'whatsapp', 'business_type', 'monthly_volume', 'team_size',
+            'challenges', 'status', 'source', 'created_at', 'updated_at', 'notes',
+            'step_reached', 'step_label', 'completed', 'visitor_key', 'is_repeat'
+          ])
+          && request.resource.data.name is string
+          && request.resource.data.name.size() <= 120
+          && request.resource.data.whatsapp is string
+          && request.resource.data.whatsapp.size() <= 40
+          && request.resource.data.business_type is string
+          && request.resource.data.business_type.size() > 0
+          && request.resource.data.business_type.size() <= 120
+          && request.resource.data.monthly_volume is string
+          && request.resource.data.monthly_volume.size() <= 80
+          && request.resource.data.team_size is string
+          && request.resource.data.team_size.size() <= 80
+          && request.resource.data.challenges is list
+          && request.resource.data.challenges.size() <= 2
+          && request.resource.data.status == 'in_progress'
+          && request.resource.data.source == 'audit_landing'
+          && request.resource.data.created_at is string
+          && request.resource.data.updated_at is string
+          && request.resource.data.notes is string
+          && request.resource.data.notes.size() == 0
+          && request.resource.data.step_reached is int
+          && request.resource.data.step_reached >= 1
+          && request.resource.data.step_reached <= 5
+          && request.resource.data.step_label is string
+          && request.resource.data.step_label.size() <= 80
+          && request.resource.data.completed == false
+          && request.resource.data.visitor_key is string
+          && request.resource.data.visitor_key.size() >= 8
+          && request.resource.data.visitor_key.size() <= 80
+          && request.resource.data.is_repeat is bool;
+      }
+
+      function auditPublicUpdateValid() {
+        return resource.data.source == 'audit_landing'
+          && resource.data.completed == false
+          && request.resource.data.source == 'audit_landing'
+          && request.resource.data.created_at == resource.data.created_at
+          && request.resource.data.visitor_key == resource.data.visitor_key
+          && request.resource.data.is_repeat == resource.data.is_repeat
+          && request.resource.data.keys().hasAll([
+              'name', 'whatsapp', 'business_type', 'monthly_volume', 'team_size',
+              'challenges', 'status', 'source', 'created_at', 'updated_at', 'notes',
+              'step_reached', 'step_label', 'completed', 'visitor_key', 'is_repeat'
+            ])
+          && request.resource.data.name is string
+          && request.resource.data.name.size() <= 120
+          && request.resource.data.whatsapp is string
+          && request.resource.data.whatsapp.size() <= 40
+          && request.resource.data.business_type is string
+          && request.resource.data.business_type.size() > 0
+          && request.resource.data.business_type.size() <= 120
+          && request.resource.data.monthly_volume is string
+          && request.resource.data.monthly_volume.size() <= 80
+          && request.resource.data.team_size is string
+          && request.resource.data.team_size.size() <= 80
+          && request.resource.data.challenges is list
+          && request.resource.data.challenges.size() <= 2
+          && request.resource.data.status in ['in_progress', 'new']
+          && request.resource.data.updated_at is string
+          && request.resource.data.notes == resource.data.notes
+          && request.resource.data.step_reached is int
+          && request.resource.data.step_reached >= resource.data.step_reached
+          && request.resource.data.step_reached <= 6
+          && request.resource.data.step_label is string
+          && request.resource.data.step_label.size() <= 80
+          && request.resource.data.completed is bool
+          && (
+            (request.resource.data.completed == false
+              && request.resource.data.status == 'in_progress')
+            ||
+            (request.resource.data.completed == true
+              && request.resource.data.status == 'new'
+              && request.resource.data.name.size() > 0
+              && request.resource.data.whatsapp.size() >= 8)
+          );
+      }
+
+      allow create: if auditCreateValid();
+      allow update: if isStaff() || auditPublicUpdateValid();
+      allow read, delete: if isStaff();
+    }
   }
 }

@@ -16,12 +16,20 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedOverviewRouteImport } from './routes/_authenticated/overview'
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients/index'
 import { Route as AuthenticatedFinanceIndexRouteImport } from './routes/_authenticated/finance/index'
+import { Route as AuthenticatedLandingIndexRouteImport } from './routes/_authenticated/landing/index'
+import { Route as AuthenticatedLandingLeadsRouteImport } from './routes/_authenticated/landing/leads'
+import { Route as AuthenticatedLandingSettingsRouteImport } from './routes/_authenticated/landing/settings'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects/index'
 import { Route as AuthenticatedProjectsProjectIdRouteImport } from './routes/_authenticated/projects/$projectId'
 import { Route as AuthenticatedSprintsIndexRouteImport } from './routes/_authenticated/sprints/index'
 import { Route as AuthenticatedSprintsSprintIdRouteImport } from './routes/_authenticated/sprints/$sprintId'
 import { Route as AuthenticatedTasksIndexRouteImport } from './routes/_authenticated/tasks/index'
 import { Route as AuthenticatedTeamIndexRouteImport } from './routes/_authenticated/team/index'
+import { Route as AuthenticatedWebsiteIndexRouteImport } from './routes/_authenticated/website/index'
+import { Route as AuthenticatedWebsiteLeadsRouteImport } from './routes/_authenticated/website/leads'
+import { Route as AuthenticatedWebsiteProjectsRouteImport } from './routes/_authenticated/website/projects'
+import { Route as AuthenticatedWebsiteSettingsRouteImport } from './routes/_authenticated/website/settings'
+import { Route as AuthenticatedWebsiteTestimonialsRouteImport } from './routes/_authenticated/website/testimonials'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -59,6 +67,24 @@ const AuthenticatedFinanceIndexRoute =
     path: '/finance/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedLandingIndexRoute =
+  AuthenticatedLandingIndexRouteImport.update({
+    id: '/landing/',
+    path: '/landing/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedLandingLeadsRoute =
+  AuthenticatedLandingLeadsRouteImport.update({
+    id: '/landing/leads',
+    path: '/landing/leads',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedLandingSettingsRoute =
+  AuthenticatedLandingSettingsRouteImport.update({
+    id: '/landing/settings',
+    path: '/landing/settings',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedProjectsIndexRoute =
   AuthenticatedProjectsIndexRouteImport.update({
     id: '/projects/',
@@ -93,34 +119,80 @@ const AuthenticatedTeamIndexRoute = AuthenticatedTeamIndexRouteImport.update({
   path: '/team/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedWebsiteIndexRoute =
+  AuthenticatedWebsiteIndexRouteImport.update({
+    id: '/website/',
+    path: '/website/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedWebsiteLeadsRoute =
+  AuthenticatedWebsiteLeadsRouteImport.update({
+    id: '/website/leads',
+    path: '/website/leads',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedWebsiteProjectsRoute =
+  AuthenticatedWebsiteProjectsRouteImport.update({
+    id: '/website/projects',
+    path: '/website/projects',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedWebsiteSettingsRoute =
+  AuthenticatedWebsiteSettingsRouteImport.update({
+    id: '/website/settings',
+    path: '/website/settings',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedWebsiteTestimonialsRoute =
+  AuthenticatedWebsiteTestimonialsRouteImport.update({
+    id: '/website/testimonials',
+    path: '/website/testimonials',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/overview': typeof AuthenticatedOverviewRoute
+  '/landing/leads': typeof AuthenticatedLandingLeadsRoute
+  '/landing/settings': typeof AuthenticatedLandingSettingsRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
   '/sprints/$sprintId': typeof AuthenticatedSprintsSprintIdRoute
+  '/website/leads': typeof AuthenticatedWebsiteLeadsRoute
+  '/website/projects': typeof AuthenticatedWebsiteProjectsRoute
+  '/website/settings': typeof AuthenticatedWebsiteSettingsRoute
+  '/website/testimonials': typeof AuthenticatedWebsiteTestimonialsRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
   '/finance/': typeof AuthenticatedFinanceIndexRoute
+  '/landing/': typeof AuthenticatedLandingIndexRoute
   '/projects/': typeof AuthenticatedProjectsIndexRoute
   '/sprints/': typeof AuthenticatedSprintsIndexRoute
   '/tasks/': typeof AuthenticatedTasksIndexRoute
   '/team/': typeof AuthenticatedTeamIndexRoute
+  '/website/': typeof AuthenticatedWebsiteIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/overview': typeof AuthenticatedOverviewRoute
+  '/landing/leads': typeof AuthenticatedLandingLeadsRoute
+  '/landing/settings': typeof AuthenticatedLandingSettingsRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
   '/sprints/$sprintId': typeof AuthenticatedSprintsSprintIdRoute
+  '/website/leads': typeof AuthenticatedWebsiteLeadsRoute
+  '/website/projects': typeof AuthenticatedWebsiteProjectsRoute
+  '/website/settings': typeof AuthenticatedWebsiteSettingsRoute
+  '/website/testimonials': typeof AuthenticatedWebsiteTestimonialsRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
   '/finance': typeof AuthenticatedFinanceIndexRoute
+  '/landing': typeof AuthenticatedLandingIndexRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
   '/sprints': typeof AuthenticatedSprintsIndexRoute
   '/tasks': typeof AuthenticatedTasksIndexRoute
   '/team': typeof AuthenticatedTeamIndexRoute
+  '/website': typeof AuthenticatedWebsiteIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -129,14 +201,22 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/overview': typeof AuthenticatedOverviewRoute
+  '/_authenticated/landing/leads': typeof AuthenticatedLandingLeadsRoute
+  '/_authenticated/landing/settings': typeof AuthenticatedLandingSettingsRoute
   '/_authenticated/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
   '/_authenticated/sprints/$sprintId': typeof AuthenticatedSprintsSprintIdRoute
+  '/_authenticated/website/leads': typeof AuthenticatedWebsiteLeadsRoute
+  '/_authenticated/website/projects': typeof AuthenticatedWebsiteProjectsRoute
+  '/_authenticated/website/settings': typeof AuthenticatedWebsiteSettingsRoute
+  '/_authenticated/website/testimonials': typeof AuthenticatedWebsiteTestimonialsRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
   '/_authenticated/finance/': typeof AuthenticatedFinanceIndexRoute
+  '/_authenticated/landing/': typeof AuthenticatedLandingIndexRoute
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
   '/_authenticated/sprints/': typeof AuthenticatedSprintsIndexRoute
   '/_authenticated/tasks/': typeof AuthenticatedTasksIndexRoute
   '/_authenticated/team/': typeof AuthenticatedTeamIndexRoute
+  '/_authenticated/website/': typeof AuthenticatedWebsiteIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -145,28 +225,44 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/overview'
+    | '/landing/leads'
+    | '/landing/settings'
     | '/projects/$projectId'
     | '/sprints/$sprintId'
+    | '/website/leads'
+    | '/website/projects'
+    | '/website/settings'
+    | '/website/testimonials'
     | '/clients/'
     | '/finance/'
+    | '/landing/'
     | '/projects/'
     | '/sprints/'
     | '/tasks/'
     | '/team/'
+    | '/website/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
     | '/dashboard'
     | '/overview'
+    | '/landing/leads'
+    | '/landing/settings'
     | '/projects/$projectId'
     | '/sprints/$sprintId'
+    | '/website/leads'
+    | '/website/projects'
+    | '/website/settings'
+    | '/website/testimonials'
     | '/clients'
     | '/finance'
+    | '/landing'
     | '/projects'
     | '/sprints'
     | '/tasks'
     | '/team'
+    | '/website'
   id:
     | '__root__'
     | '/'
@@ -174,14 +270,22 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/dashboard'
     | '/_authenticated/overview'
+    | '/_authenticated/landing/leads'
+    | '/_authenticated/landing/settings'
     | '/_authenticated/projects/$projectId'
     | '/_authenticated/sprints/$sprintId'
+    | '/_authenticated/website/leads'
+    | '/_authenticated/website/projects'
+    | '/_authenticated/website/settings'
+    | '/_authenticated/website/testimonials'
     | '/_authenticated/clients/'
     | '/_authenticated/finance/'
+    | '/_authenticated/landing/'
     | '/_authenticated/projects/'
     | '/_authenticated/sprints/'
     | '/_authenticated/tasks/'
     | '/_authenticated/team/'
+    | '/_authenticated/website/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -241,6 +345,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFinanceIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/landing/': {
+      id: '/_authenticated/landing/'
+      path: '/landing'
+      fullPath: '/landing/'
+      preLoaderRoute: typeof AuthenticatedLandingIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/landing/leads': {
+      id: '/_authenticated/landing/leads'
+      path: '/landing/leads'
+      fullPath: '/landing/leads'
+      preLoaderRoute: typeof AuthenticatedLandingLeadsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/landing/settings': {
+      id: '/_authenticated/landing/settings'
+      path: '/landing/settings'
+      fullPath: '/landing/settings'
+      preLoaderRoute: typeof AuthenticatedLandingSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/projects/': {
       id: '/_authenticated/projects/'
       path: '/projects'
@@ -283,33 +408,84 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTeamIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/website/': {
+      id: '/_authenticated/website/'
+      path: '/website'
+      fullPath: '/website/'
+      preLoaderRoute: typeof AuthenticatedWebsiteIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/website/leads': {
+      id: '/_authenticated/website/leads'
+      path: '/website/leads'
+      fullPath: '/website/leads'
+      preLoaderRoute: typeof AuthenticatedWebsiteLeadsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/website/projects': {
+      id: '/_authenticated/website/projects'
+      path: '/website/projects'
+      fullPath: '/website/projects'
+      preLoaderRoute: typeof AuthenticatedWebsiteProjectsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/website/settings': {
+      id: '/_authenticated/website/settings'
+      path: '/website/settings'
+      fullPath: '/website/settings'
+      preLoaderRoute: typeof AuthenticatedWebsiteSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/website/testimonials': {
+      id: '/_authenticated/website/testimonials'
+      path: '/website/testimonials'
+      fullPath: '/website/testimonials'
+      preLoaderRoute: typeof AuthenticatedWebsiteTestimonialsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedOverviewRoute: typeof AuthenticatedOverviewRoute
+  AuthenticatedLandingLeadsRoute: typeof AuthenticatedLandingLeadsRoute
+  AuthenticatedLandingSettingsRoute: typeof AuthenticatedLandingSettingsRoute
   AuthenticatedProjectsProjectIdRoute: typeof AuthenticatedProjectsProjectIdRoute
   AuthenticatedSprintsSprintIdRoute: typeof AuthenticatedSprintsSprintIdRoute
+  AuthenticatedWebsiteLeadsRoute: typeof AuthenticatedWebsiteLeadsRoute
+  AuthenticatedWebsiteProjectsRoute: typeof AuthenticatedWebsiteProjectsRoute
+  AuthenticatedWebsiteSettingsRoute: typeof AuthenticatedWebsiteSettingsRoute
+  AuthenticatedWebsiteTestimonialsRoute: typeof AuthenticatedWebsiteTestimonialsRoute
   AuthenticatedClientsIndexRoute: typeof AuthenticatedClientsIndexRoute
   AuthenticatedFinanceIndexRoute: typeof AuthenticatedFinanceIndexRoute
+  AuthenticatedLandingIndexRoute: typeof AuthenticatedLandingIndexRoute
   AuthenticatedProjectsIndexRoute: typeof AuthenticatedProjectsIndexRoute
   AuthenticatedSprintsIndexRoute: typeof AuthenticatedSprintsIndexRoute
   AuthenticatedTasksIndexRoute: typeof AuthenticatedTasksIndexRoute
   AuthenticatedTeamIndexRoute: typeof AuthenticatedTeamIndexRoute
+  AuthenticatedWebsiteIndexRoute: typeof AuthenticatedWebsiteIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedOverviewRoute: AuthenticatedOverviewRoute,
+  AuthenticatedLandingLeadsRoute: AuthenticatedLandingLeadsRoute,
+  AuthenticatedLandingSettingsRoute: AuthenticatedLandingSettingsRoute,
   AuthenticatedProjectsProjectIdRoute: AuthenticatedProjectsProjectIdRoute,
   AuthenticatedSprintsSprintIdRoute: AuthenticatedSprintsSprintIdRoute,
+  AuthenticatedWebsiteLeadsRoute: AuthenticatedWebsiteLeadsRoute,
+  AuthenticatedWebsiteProjectsRoute: AuthenticatedWebsiteProjectsRoute,
+  AuthenticatedWebsiteSettingsRoute: AuthenticatedWebsiteSettingsRoute,
+  AuthenticatedWebsiteTestimonialsRoute: AuthenticatedWebsiteTestimonialsRoute,
   AuthenticatedClientsIndexRoute: AuthenticatedClientsIndexRoute,
   AuthenticatedFinanceIndexRoute: AuthenticatedFinanceIndexRoute,
+  AuthenticatedLandingIndexRoute: AuthenticatedLandingIndexRoute,
   AuthenticatedProjectsIndexRoute: AuthenticatedProjectsIndexRoute,
   AuthenticatedSprintsIndexRoute: AuthenticatedSprintsIndexRoute,
   AuthenticatedTasksIndexRoute: AuthenticatedTasksIndexRoute,
   AuthenticatedTeamIndexRoute: AuthenticatedTeamIndexRoute,
+  AuthenticatedWebsiteIndexRoute: AuthenticatedWebsiteIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

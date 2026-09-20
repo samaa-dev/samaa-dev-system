@@ -269,3 +269,27 @@ Cursor يتحقق عبر المتصفح إن أمكن، وإلا عبر أقرب
 - [ ] `.env` مملوء من `.env.example`
 - [ ] (اختياري) حساب خدمة للسيرفر
 - [ ] قلت لـ Cursor: **نفّذ التحويل إلى Firebase**
+
+---
+
+## 10) محتوى الموقع العام (site_*)
+
+الموقع في المجلد الشقيق `../site` يقرأ مجموعات عامة منفصلة عن التشغيل الداخلي:
+
+| مجموعة | قراءة عامة | كتابة |
+| --- | --- | --- |
+| `site_settings` | نعم | staff |
+| `site_categories` | نعم | staff |
+| `site_projects` | المنشور فقط | staff |
+| `site_testimonials` | الظاهر فقط | staff |
+| `site_leads` | لا (إنشاء عام) | staff للقراءة/التحديث |
+
+إدارة المحتوى: داخل النظام → **الموقع** (`/website`).
+
+وسائط الصور: Firebase Storage تحت `site/**` — انشر القواعد:
+
+```bash
+firebase deploy --only firestore:rules,firestore:indexes,storage
+```
+
+راجع أيضاً [`../site/README.md`](../site/README.md).

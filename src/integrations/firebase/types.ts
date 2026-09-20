@@ -184,3 +184,156 @@ export type KpiSettings = {
   updated_by: string | null;
   widgets: KpiWidgetConfig[];
 };
+
+/* ── Public website CMS (site_*) — separate from operational projects ── */
+
+export type SiteProjectStatus = "published" | "draft";
+export type SiteLeadStatus = "new" | "in_progress" | "completed";
+
+export type SiteImpactMetric = { label: string; value: string };
+
+export type SiteServiceItem = {
+  title: string;
+  description: string;
+  icon: string;
+  subtitle?: string;
+  tags?: string[];
+};
+
+export type SiteHeroSettings = {
+  headline: string;
+  subtitle: string;
+  cta_label: string;
+  projects_count: string;
+  satisfaction: string;
+  experience_years: string;
+};
+
+export type SiteContactSettings = {
+  whatsapp: string;
+  email: string;
+  phone: string;
+  address: string;
+};
+
+export type SiteSocialSettings = {
+  linkedin: string;
+  github: string;
+  instagram: string;
+  twitter: string;
+};
+
+export type SiteAboutSettings = {
+  text: string;
+};
+
+export type SiteServicesSettings = {
+  items: SiteServiceItem[];
+};
+
+export type SiteSettingsMap = {
+  hero: SiteHeroSettings;
+  contact: SiteContactSettings;
+  social: SiteSocialSettings;
+  about: SiteAboutSettings;
+  services: SiteServicesSettings;
+};
+
+export type SiteCategory = {
+  id: string;
+  slug: string;
+  label: string;
+  sort_order: number;
+  created_at: string;
+};
+
+export type SiteProject = {
+  id: string;
+  title: string;
+  slug: string;
+  category: string;
+  short_description: string;
+  detailed_description: string;
+  tech_stack: string[];
+  cover_image_url: string | null;
+  gallery_urls: string[];
+  impact_metrics: SiteImpactMetric[];
+  live_url: string | null;
+  playstore_url: string | null;
+  appstore_url: string | null;
+  is_featured: boolean;
+  status: SiteProjectStatus;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type SiteTestimonial = {
+  id: string;
+  client_name: string;
+  client_role: string;
+  company_name: string;
+  avatar_url: string | null;
+  quote_text: string;
+  rating: number;
+  is_visible: boolean;
+  sort_order: number;
+  created_at: string;
+};
+
+export type SiteLead = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  service_type: string;
+  project_details: string;
+  status: SiteLeadStatus;
+  created_at: string;
+};
+
+export type SiteAuditLeadStatus = "in_progress" | "new" | "contacted" | "qualified" | "closed";
+
+export type LandingOption = {
+  id: string;
+  short: string;
+  label: string;
+};
+
+export type LandingAuditSettings = {
+  welcome_title: string;
+  welcome_subtitle: string;
+  business_types: LandingOption[];
+  monthly_volumes: LandingOption[];
+  team_sizes: LandingOption[];
+  challenges: LandingOption[];
+  volume_title: string;
+  volume_subtitle: string;
+  team_title: string;
+  team_subtitle: string;
+  challenges_title: string;
+  challenges_subtitle: string;
+  contact_title: string;
+  contact_subtitle: string;
+  updated_at?: string;
+};
+
+export type SiteAuditLead = {
+  id: string;
+  name: string;
+  whatsapp: string;
+  business_type: string;
+  monthly_volume: string;
+  team_size: string;
+  challenges: string[];
+  status: SiteAuditLeadStatus;
+  source: "audit_landing";
+  created_at: string;
+  updated_at: string;
+  notes: string;
+  step_reached: number;
+  step_label: string;
+  completed: boolean;
+  visitor_key: string;
+  is_repeat: boolean;
+};

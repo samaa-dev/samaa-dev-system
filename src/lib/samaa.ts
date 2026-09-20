@@ -349,13 +349,54 @@ export function formatCurrency(value: number | null | undefined) {
   return `${amount.toLocaleString("ar-EG", { maximumFractionDigits: 0 })} د.ج`;
 }
 
+const ARABIC_WEEKDAYS = [
+  "الأحد",
+  "الإثنين",
+  "الثلاثاء",
+  "الأربعاء",
+  "الخميس",
+  "الجمعة",
+  "السبت",
+] as const;
+
+const ARABIC_MONTHS = [
+  "يناير",
+  "فبراير",
+  "مارس",
+  "أبريل",
+  "مايو",
+  "يونيو",
+  "يوليو",
+  "أغسطس",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
+] as const;
+
 export function formatDate(value: string | null | undefined) {
   if (!value) return "—";
-  return new Date(value).toLocaleDateString("ar-EG", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  const dayName = ARABIC_WEEKDAYS[d.getDay()] ?? "";
+  const day = d.getDate();
+  const month = ARABIC_MONTHS[d.getMonth()] ?? "";
+  const year = d.getFullYear();
+  return `${dayName} ${day} ${month} ${year}`;
+}
+
+/** تاريخ + وقت: الأحد 20 سبتمبر 2026 · 14:05 */
+export function formatDateTime(value: string | null | undefined) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  const dayName = ARABIC_WEEKDAYS[d.getDay()] ?? "";
+  const day = d.getDate();
+  const month = ARABIC_MONTHS[d.getMonth()] ?? "";
+  const year = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${dayName} ${day} ${month} ${year} · ${hh}:${mm}`;
 }
 
 export function daysLeft(deadline: string | null | undefined) {
