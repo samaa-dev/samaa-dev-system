@@ -26,9 +26,13 @@ import { Route as AuthenticatedSprintsSprintIdRouteImport } from './routes/_auth
 import { Route as AuthenticatedTasksIndexRouteImport } from './routes/_authenticated/tasks/index'
 import { Route as AuthenticatedTeamIndexRouteImport } from './routes/_authenticated/team/index'
 import { Route as AuthenticatedWebsiteIndexRouteImport } from './routes/_authenticated/website/index'
+import { Route as AuthenticatedWebsiteDiagnoseRouteImport } from './routes/_authenticated/website/diagnose'
+import { Route as AuthenticatedWebsiteDiagnoseLeadsRouteImport } from './routes/_authenticated/website/diagnose-leads'
 import { Route as AuthenticatedWebsiteLeadsRouteImport } from './routes/_authenticated/website/leads'
 import { Route as AuthenticatedWebsiteProjectsRouteImport } from './routes/_authenticated/website/projects'
+import { Route as AuthenticatedWebsiteSectionsRouteImport } from './routes/_authenticated/website/sections'
 import { Route as AuthenticatedWebsiteSettingsRouteImport } from './routes/_authenticated/website/settings'
+import { Route as AuthenticatedWebsiteTeamRouteImport } from './routes/_authenticated/website/team'
 import { Route as AuthenticatedWebsiteTestimonialsRouteImport } from './routes/_authenticated/website/testimonials'
 
 const IndexRoute = IndexRouteImport.update({
@@ -125,6 +129,18 @@ const AuthenticatedWebsiteIndexRoute =
     path: '/website/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedWebsiteDiagnoseRoute =
+  AuthenticatedWebsiteDiagnoseRouteImport.update({
+    id: '/website/diagnose',
+    path: '/website/diagnose',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedWebsiteDiagnoseLeadsRoute =
+  AuthenticatedWebsiteDiagnoseLeadsRouteImport.update({
+    id: '/website/diagnose-leads',
+    path: '/website/diagnose-leads',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedWebsiteLeadsRoute =
   AuthenticatedWebsiteLeadsRouteImport.update({
     id: '/website/leads',
@@ -137,10 +153,22 @@ const AuthenticatedWebsiteProjectsRoute =
     path: '/website/projects',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedWebsiteSectionsRoute =
+  AuthenticatedWebsiteSectionsRouteImport.update({
+    id: '/website/sections',
+    path: '/website/sections',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedWebsiteSettingsRoute =
   AuthenticatedWebsiteSettingsRouteImport.update({
     id: '/website/settings',
     path: '/website/settings',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedWebsiteTeamRoute =
+  AuthenticatedWebsiteTeamRouteImport.update({
+    id: '/website/team',
+    path: '/website/team',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedWebsiteTestimonialsRoute =
@@ -159,9 +187,13 @@ export interface FileRoutesByFullPath {
   '/landing/settings': typeof AuthenticatedLandingSettingsRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
   '/sprints/$sprintId': typeof AuthenticatedSprintsSprintIdRoute
+  '/website/diagnose': typeof AuthenticatedWebsiteDiagnoseRoute
+  '/website/diagnose-leads': typeof AuthenticatedWebsiteDiagnoseLeadsRoute
   '/website/leads': typeof AuthenticatedWebsiteLeadsRoute
   '/website/projects': typeof AuthenticatedWebsiteProjectsRoute
+  '/website/sections': typeof AuthenticatedWebsiteSectionsRoute
   '/website/settings': typeof AuthenticatedWebsiteSettingsRoute
+  '/website/team': typeof AuthenticatedWebsiteTeamRoute
   '/website/testimonials': typeof AuthenticatedWebsiteTestimonialsRoute
   '/clients/': typeof AuthenticatedClientsIndexRoute
   '/finance/': typeof AuthenticatedFinanceIndexRoute
@@ -181,9 +213,13 @@ export interface FileRoutesByTo {
   '/landing/settings': typeof AuthenticatedLandingSettingsRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
   '/sprints/$sprintId': typeof AuthenticatedSprintsSprintIdRoute
+  '/website/diagnose': typeof AuthenticatedWebsiteDiagnoseRoute
+  '/website/diagnose-leads': typeof AuthenticatedWebsiteDiagnoseLeadsRoute
   '/website/leads': typeof AuthenticatedWebsiteLeadsRoute
   '/website/projects': typeof AuthenticatedWebsiteProjectsRoute
+  '/website/sections': typeof AuthenticatedWebsiteSectionsRoute
   '/website/settings': typeof AuthenticatedWebsiteSettingsRoute
+  '/website/team': typeof AuthenticatedWebsiteTeamRoute
   '/website/testimonials': typeof AuthenticatedWebsiteTestimonialsRoute
   '/clients': typeof AuthenticatedClientsIndexRoute
   '/finance': typeof AuthenticatedFinanceIndexRoute
@@ -205,9 +241,13 @@ export interface FileRoutesById {
   '/_authenticated/landing/settings': typeof AuthenticatedLandingSettingsRoute
   '/_authenticated/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
   '/_authenticated/sprints/$sprintId': typeof AuthenticatedSprintsSprintIdRoute
+  '/_authenticated/website/diagnose': typeof AuthenticatedWebsiteDiagnoseRoute
+  '/_authenticated/website/diagnose-leads': typeof AuthenticatedWebsiteDiagnoseLeadsRoute
   '/_authenticated/website/leads': typeof AuthenticatedWebsiteLeadsRoute
   '/_authenticated/website/projects': typeof AuthenticatedWebsiteProjectsRoute
+  '/_authenticated/website/sections': typeof AuthenticatedWebsiteSectionsRoute
   '/_authenticated/website/settings': typeof AuthenticatedWebsiteSettingsRoute
+  '/_authenticated/website/team': typeof AuthenticatedWebsiteTeamRoute
   '/_authenticated/website/testimonials': typeof AuthenticatedWebsiteTestimonialsRoute
   '/_authenticated/clients/': typeof AuthenticatedClientsIndexRoute
   '/_authenticated/finance/': typeof AuthenticatedFinanceIndexRoute
@@ -229,9 +269,13 @@ export interface FileRouteTypes {
     | '/landing/settings'
     | '/projects/$projectId'
     | '/sprints/$sprintId'
+    | '/website/diagnose'
+    | '/website/diagnose-leads'
     | '/website/leads'
     | '/website/projects'
+    | '/website/sections'
     | '/website/settings'
+    | '/website/team'
     | '/website/testimonials'
     | '/clients/'
     | '/finance/'
@@ -251,9 +295,13 @@ export interface FileRouteTypes {
     | '/landing/settings'
     | '/projects/$projectId'
     | '/sprints/$sprintId'
+    | '/website/diagnose'
+    | '/website/diagnose-leads'
     | '/website/leads'
     | '/website/projects'
+    | '/website/sections'
     | '/website/settings'
+    | '/website/team'
     | '/website/testimonials'
     | '/clients'
     | '/finance'
@@ -274,9 +322,13 @@ export interface FileRouteTypes {
     | '/_authenticated/landing/settings'
     | '/_authenticated/projects/$projectId'
     | '/_authenticated/sprints/$sprintId'
+    | '/_authenticated/website/diagnose'
+    | '/_authenticated/website/diagnose-leads'
     | '/_authenticated/website/leads'
     | '/_authenticated/website/projects'
+    | '/_authenticated/website/sections'
     | '/_authenticated/website/settings'
+    | '/_authenticated/website/team'
     | '/_authenticated/website/testimonials'
     | '/_authenticated/clients/'
     | '/_authenticated/finance/'
@@ -415,6 +467,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWebsiteIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/website/diagnose': {
+      id: '/_authenticated/website/diagnose'
+      path: '/website/diagnose'
+      fullPath: '/website/diagnose'
+      preLoaderRoute: typeof AuthenticatedWebsiteDiagnoseRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/website/diagnose-leads': {
+      id: '/_authenticated/website/diagnose-leads'
+      path: '/website/diagnose-leads'
+      fullPath: '/website/diagnose-leads'
+      preLoaderRoute: typeof AuthenticatedWebsiteDiagnoseLeadsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/website/leads': {
       id: '/_authenticated/website/leads'
       path: '/website/leads'
@@ -429,11 +495,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedWebsiteProjectsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/website/sections': {
+      id: '/_authenticated/website/sections'
+      path: '/website/sections'
+      fullPath: '/website/sections'
+      preLoaderRoute: typeof AuthenticatedWebsiteSectionsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/website/settings': {
       id: '/_authenticated/website/settings'
       path: '/website/settings'
       fullPath: '/website/settings'
       preLoaderRoute: typeof AuthenticatedWebsiteSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/website/team': {
+      id: '/_authenticated/website/team'
+      path: '/website/team'
+      fullPath: '/website/team'
+      preLoaderRoute: typeof AuthenticatedWebsiteTeamRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/website/testimonials': {
@@ -453,9 +533,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLandingSettingsRoute: typeof AuthenticatedLandingSettingsRoute
   AuthenticatedProjectsProjectIdRoute: typeof AuthenticatedProjectsProjectIdRoute
   AuthenticatedSprintsSprintIdRoute: typeof AuthenticatedSprintsSprintIdRoute
+  AuthenticatedWebsiteDiagnoseRoute: typeof AuthenticatedWebsiteDiagnoseRoute
+  AuthenticatedWebsiteDiagnoseLeadsRoute: typeof AuthenticatedWebsiteDiagnoseLeadsRoute
   AuthenticatedWebsiteLeadsRoute: typeof AuthenticatedWebsiteLeadsRoute
   AuthenticatedWebsiteProjectsRoute: typeof AuthenticatedWebsiteProjectsRoute
+  AuthenticatedWebsiteSectionsRoute: typeof AuthenticatedWebsiteSectionsRoute
   AuthenticatedWebsiteSettingsRoute: typeof AuthenticatedWebsiteSettingsRoute
+  AuthenticatedWebsiteTeamRoute: typeof AuthenticatedWebsiteTeamRoute
   AuthenticatedWebsiteTestimonialsRoute: typeof AuthenticatedWebsiteTestimonialsRoute
   AuthenticatedClientsIndexRoute: typeof AuthenticatedClientsIndexRoute
   AuthenticatedFinanceIndexRoute: typeof AuthenticatedFinanceIndexRoute
@@ -474,9 +558,14 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLandingSettingsRoute: AuthenticatedLandingSettingsRoute,
   AuthenticatedProjectsProjectIdRoute: AuthenticatedProjectsProjectIdRoute,
   AuthenticatedSprintsSprintIdRoute: AuthenticatedSprintsSprintIdRoute,
+  AuthenticatedWebsiteDiagnoseRoute: AuthenticatedWebsiteDiagnoseRoute,
+  AuthenticatedWebsiteDiagnoseLeadsRoute:
+    AuthenticatedWebsiteDiagnoseLeadsRoute,
   AuthenticatedWebsiteLeadsRoute: AuthenticatedWebsiteLeadsRoute,
   AuthenticatedWebsiteProjectsRoute: AuthenticatedWebsiteProjectsRoute,
+  AuthenticatedWebsiteSectionsRoute: AuthenticatedWebsiteSectionsRoute,
   AuthenticatedWebsiteSettingsRoute: AuthenticatedWebsiteSettingsRoute,
+  AuthenticatedWebsiteTeamRoute: AuthenticatedWebsiteTeamRoute,
   AuthenticatedWebsiteTestimonialsRoute: AuthenticatedWebsiteTestimonialsRoute,
   AuthenticatedClientsIndexRoute: AuthenticatedClientsIndexRoute,
   AuthenticatedFinanceIndexRoute: AuthenticatedFinanceIndexRoute,
