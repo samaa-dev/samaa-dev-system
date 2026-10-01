@@ -8,6 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
 
 export function ConfirmDelete({
   open,
@@ -16,6 +17,9 @@ export function ConfirmDelete({
   description,
   onConfirm,
   pending,
+  confirmLabel = "حذف",
+  pendingLabel = "جارٍ الحذف…",
+  variant = "destructive",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -23,6 +27,9 @@ export function ConfirmDelete({
   description: string;
   onConfirm: () => void;
   pending?: boolean;
+  confirmLabel?: string;
+  pendingLabel?: string;
+  variant?: "destructive" | "default";
 }) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -39,9 +46,12 @@ export function ConfirmDelete({
               e.preventDefault();
               onConfirm();
             }}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className={cn(
+              variant === "destructive" &&
+                "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+            )}
           >
-            {pending ? "جارٍ الحذف…" : "حذف"}
+            {pending ? pendingLabel : confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

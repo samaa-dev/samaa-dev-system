@@ -31,6 +31,12 @@ export function LandingSubnav() {
           </Link>
         );
       })}
+      <Link
+        to="/website/diagnose"
+        className="rounded-lg bg-muted px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
+      >
+        صفحة التشخيص الجديدة ←
+      </Link>
     </div>
   );
 }

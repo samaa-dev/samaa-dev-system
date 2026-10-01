@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +26,12 @@ import type { SiteTestimonial } from "@/integrations/firebase/types";
 import { newId, nowIso, withFirebaseError } from "@/integrations/firebase/helpers";
 import { siteTestimonialsAdminQuery } from "@/lib/data";
 import { uploadSiteMedia } from "@/lib/site-storage";
+import { asLocalized, emptyLocalized, trimLocalized, type LocalizedString } from "@/lib/i18n/localized";
+import { textOf } from "@/lib/site-localize";
+import {
+  LocalizedFieldsTabs,
+  LocalizedTextField,
+} from "@/components/website/LocalizedFields";
 
 export const Route = createFileRoute("/_authenticated/website/testimonials")({
   head: () => ({
@@ -40,11 +45,11 @@ export const Route = createFileRoute("/_authenticated/website/testimonials")({
 
 type FormState = {
   id?: string;
-  client_name: string;
-  client_role: string;
-  company_name: string;
+  client_name: LocalizedString;
+  client_role: LocalizedString;
+  company_name: LocalizedString;
   avatar_url: string | null;
-  quote_text: string;
+  quote_text: LocalizedString;
   rating: number;
   is_visible: boolean;
   sort_order: number;
@@ -52,11 +57,11 @@ type FormState = {
 
 function emptyForm(): FormState {
   return {
-    client_name: "",
-    client_role: "",
-    company_name: "",
+    client_name: emptyLocalized(),
+    client_role: emptyLocalized(),
+    company_name: emptyLocalized(),
     avatar_url: null,
-    quote_text: "",
+    quote_text: emptyLocalized(),
     rating: 5,
     is_visible: true,
     sort_order: 0,
@@ -66,11 +71,11 @@ function emptyForm(): FormState {
 function toForm(t: SiteTestimonial): FormState {
   return {
     id: t.id,
-    client_name: t.client_name,
-    client_role: t.client_role,
-    company_name: t.company_name,
+    client_name: asLocalized(t.client_name),
+    client_role: asLocalized(t.client_role),
+    company_name: asLocalized(t.company_name),
     avatar_url: t.avatar_url,
-    quote_text: t.quote_text,
+    quote_text: asLocalized(t.quote_text),
     rating: t.rating,
     is_visible: t.is_visible,
     sort_order: t.sort_order ?? 0,
@@ -92,11 +97,11 @@ function WebsiteTestimonialsPage() {
         const now = nowIso();
         const id = state.id ?? newId();
         const payload = {
-          client_name: state.client_name.trim(),
-          client_role: state.client_role.trim(),
-          company_name: state.company_name.trim(),
+          client_name: trimLocalized(state.client_name),
+          client_role: trimLocalized(state.client_role),
+          company_name: trimLocalized(state.company_name),
           avatar_url: state.avatar_url,
-          quote_text: state.quote_text.trim(),
+          quote_text: trimLocalized(state.quote_text),
           rating: Math.min(5, Math.max(1, Number(state.rating) || 5)),
           is_visible: state.is_visible,
           sort_order: Number(state.sort_order) || 0,
@@ -166,12 +171,12 @@ function WebsiteTestimonialsPage() {
           {
             key: "client",
             header: "العميل",
-            value: (t: SiteTestimonial) => t.client_name,
+            value: (t: SiteTestimonial) => textOf(t.client_name),
             cell: (t: SiteTestimonial) => (
               <div>
-                <div className="font-medium">{t.client_name}</div>
+                <div className="font-medium">{textOf(t.client_name)}</div>
                 <div className="text-xs text-muted-foreground">
-                  {[t.client_role, t.company_name].filter(Boolean).join(" — ")}
+                  {[textOf(t.client_role), textOf(t.company_name)].filter(Boolean).join(" — ")}
                 </div>
               </div>
             ),
@@ -179,9 +184,11 @@ function WebsiteTestimonialsPage() {
           {
             key: "quote",
             header: "العبارة",
-            value: (t: SiteTestimonial) => t.quote_text,
+            value: (t: SiteTestimonial) => textOf(t.quote_text),
             cell: (t: SiteTestimonial) => (
-              <p className="max-w-md line-clamp-2 text-sm text-muted-foreground">{t.quote_text}</p>
+              <p className="max-w-md line-clamp-2 text-sm text-muted-foreground">
+                {textOf(t.quote_text)}
+              </p>
             ),
           },
           {
@@ -211,37 +218,40 @@ function WebsiteTestimonialsPage() {
           </DialogHeader>
           {form && (
             <div className="grid gap-3">
-              <div className="space-y-1.5">
-                <Label>اسم العميل</Label>
-                <Input
-                  value={form.client_name}
-                  onChange={(e) => setForm({ ...form, client_name: e.target.value })}
-                />
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label>المنصب</Label>
-                  <Input
-                    value={form.client_role}
-                    onChange={(e) => setForm({ ...form, client_role: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>الشركة</Label>
-                  <Input
-                    value={form.company_name}
-                    onChange={(e) => setForm({ ...form, company_name: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label>العبارة</Label>
-                <Textarea
-                  rows={4}
-                  value={form.quote_text}
-                  onChange={(e) => setForm({ ...form, quote_text: e.target.value })}
-                />
-              </div>
+              <LocalizedFieldsTabs>
+                {(locale) => (
+                  <div className="space-y-3">
+                    <LocalizedTextField
+                      label="اسم العميل"
+                      locale={locale}
+                      value={form.client_name}
+                      onChange={(client_name) => setForm({ ...form, client_name })}
+                    />
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <LocalizedTextField
+                        label="المنصب"
+                        locale={locale}
+                        value={form.client_role}
+                        onChange={(client_role) => setForm({ ...form, client_role })}
+                      />
+                      <LocalizedTextField
+                        label="الشركة"
+                        locale={locale}
+                        value={form.company_name}
+                        onChange={(company_name) => setForm({ ...form, company_name })}
+                      />
+                    </div>
+                    <LocalizedTextField
+                      label="العبارة"
+                      locale={locale}
+                      multiline
+                      rows={4}
+                      value={form.quote_text}
+                      onChange={(quote_text) => setForm({ ...form, quote_text })}
+                    />
+                  </div>
+                )}
+              </LocalizedFieldsTabs>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label>التقييم (1–5)</Label>
@@ -305,7 +315,7 @@ function WebsiteTestimonialsPage() {
             </Button>
             <Button
               disabled={
-                save.isPending || !form?.client_name.trim() || !form?.quote_text.trim()
+                save.isPending || !textOf(form?.client_name) || !textOf(form?.quote_text)
               }
               onClick={() => form && save.mutate(form)}
             >

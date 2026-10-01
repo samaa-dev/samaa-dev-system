@@ -15,6 +15,9 @@ import { docsToRows, docToRow, newId, nowIso, withFirebaseError } from "@/integr
 import type {
   Client,
   ClientContact,
+  DiagnosticField,
+  DiagnosticOption,
+  DiagnosticStep,
   KpiSettings,
   Milestone,
   PayrollProfile,
@@ -24,6 +27,8 @@ import type {
   SiteAboutSettings,
   SiteCategory,
   SiteContactSettings,
+  SiteDiagnosticLead,
+  SiteDiagnosticSettings,
   SiteHeroSettings,
   SiteLead,
   SiteAuditLead,
@@ -32,6 +37,7 @@ import type {
   SiteProject,
   SiteServicesSettings,
   SiteSocialSettings,
+  SiteTeamMember,
   SiteTestimonial,
   Sprint,
   Task,
@@ -47,6 +53,15 @@ import {
   DEFAULT_SITE_SOCIAL,
   DEFAULT_LANDING_AUDIT,
 } from "@/lib/site-defaults";
+import { DEFAULT_SITE_DIAGNOSTIC } from "@/lib/diagnostic-defaults";
+import { createDefaultLayout, parseLayout, type SiteLayoutSettings } from "@/lib/site-sections";
+import {
+  localizeCategoryRow,
+  localizeProjectRow,
+  localizeTestimonialRow,
+  textOf,
+} from "@/lib/site-localize";
+import { asLocalized } from "@/lib/i18n/localized";
 
 export type {
   Client,
@@ -60,7 +75,10 @@ export type {
   SiteLead,
   SiteAuditLead,
   LandingAuditSettings,
+  SiteDiagnosticLead,
+  SiteDiagnosticSettings,
   SiteProject,
+  SiteTeamMember,
   SiteTestimonial,
   Sprint,
   Task,
@@ -408,6 +426,7 @@ export type SiteSettingsBundle = {
   social: SiteSocialSettings;
   about: SiteAboutSettings;
   services: SiteServicesSettings;
+  layout: SiteLayoutSettings;
 };
 
 export const siteSettingsQuery = () =>
@@ -415,7 +434,7 @@ export const siteSettingsQuery = () =>
     queryKey: ["site-settings"],
     queryFn: async (): Promise<SiteSettingsBundle> =>
       withFirebaseError(async () => {
-        const keys = ["hero", "contact", "social", "about", "services"] as const;
+        const keys = ["hero", "contact", "social", "about", "services", "layout"] as const;
         const snaps = await Promise.all(
           keys.map((key) => getDoc(doc(getDb(), "site_settings", key))),
         );
@@ -429,6 +448,7 @@ export const siteSettingsQuery = () =>
           social: asSocial(map["social"]),
           about: asAbout(map["about"]),
           services: asServices(map["services"]),
+          layout: parseLayout(map["layout"]),
         };
       }),
   });
@@ -471,6 +491,22 @@ export async function ensureSiteDefaults() {
           });
         }),
       );
+    }
+
+    const diagnosticSnap = await getDoc(doc(getDb(), "site_settings", "diagnostic"));
+    if (!diagnosticSnap.exists()) {
+      await setDoc(doc(getDb(), "site_settings", "diagnostic"), {
+        ...DEFAULT_SITE_DIAGNOSTIC,
+        updated_at: nowIso(),
+      });
+    }
+
+    const layoutSnap = await getDoc(doc(getDb(), "site_settings", "layout"));
+    if (!layoutSnap.exists()) {
+      await setDoc(doc(getDb(), "site_settings", "layout"), {
+        ...createDefaultLayout(),
+        updated_at: nowIso(),
+      });
     }
   });
 }
@@ -573,7 +609,7 @@ export const siteCategoriesQuery = () =>
         const snap = await getDocs(
           query(collection(getDb(), "site_categories"), orderBy("sort_order", "asc")),
         );
-        return docsToRows<SiteCategory>(snap.docs);
+        return snap.docs.map((d) => localizeCategoryRow({ id: d.id, ...d.data() }));
       }),
   });
 
@@ -586,7 +622,7 @@ export const siteProjectsAdminQuery = () =>
         const snap = await getDocs(
           query(collection(getDb(), "site_projects"), orderBy("sort_order", "asc")),
         );
-        return docsToRows<SiteProject>(snap.docs);
+        return snap.docs.map((d) => localizeProjectRow({ id: d.id, ...d.data() }));
       }),
   });
 
@@ -600,7 +636,7 @@ export const siteProjectsPublishedQuery = () =>
         const snap = await getDocs(
           query(collection(getDb(), "site_projects"), where("status", "==", "published")),
         );
-        const rows = docsToRows<SiteProject>(snap.docs);
+        const rows = snap.docs.map((d) => localizeProjectRow({ id: d.id, ...d.data() }));
         return rows.sort((a, b) => {
           const featured = Number(b.is_featured) - Number(a.is_featured);
           if (featured !== 0) return featured;
@@ -617,7 +653,7 @@ export const siteTestimonialsAdminQuery = () =>
         const snap = await getDocs(
           query(collection(getDb(), "site_testimonials"), orderBy("sort_order", "asc")),
         );
-        return docsToRows<SiteTestimonial>(snap.docs);
+        return snap.docs.map((d) => localizeTestimonialRow({ id: d.id, ...d.data() }));
       }),
   });
 
@@ -629,7 +665,7 @@ export const siteTestimonialsVisibleQuery = () =>
         const snap = await getDocs(
           query(collection(getDb(), "site_testimonials"), where("is_visible", "==", true)),
         );
-        const rows = docsToRows<SiteTestimonial>(snap.docs);
+        const rows = snap.docs.map((d) => localizeTestimonialRow({ id: d.id, ...d.data() }));
         return rows.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
       }),
   });
@@ -659,5 +695,185 @@ export const siteAuditLeadsQuery = () =>
   });
 
 export function categoryLabel(categories: SiteCategory[] | undefined, slug: string): string {
-  return categories?.find((c) => c.slug === slug)?.label ?? slug;
+  const found = categories?.find((c) => c.slug === slug);
+  if (!found) return slug;
+  return textOf(asLocalized(found.label));
 }
+
+function cloneDiagnosticDefaults(): DiagnosticStep[] {
+  return structuredClone(DEFAULT_SITE_DIAGNOSTIC.steps);
+}
+
+function asDiagnosticOptions(raw: unknown): DiagnosticOption[] {
+  if (!Array.isArray(raw)) return [];
+  const out: DiagnosticOption[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const row = item as Record<string, unknown>;
+    const id = typeof row["id"] === "string" ? row["id"].trim() : "";
+    const label = typeof row["label"] === "string" ? row["label"].trim() : "";
+    if (!id || !label) continue;
+    out.push({ id: id.slice(0, 60), label: label.slice(0, 200) });
+  }
+  return out;
+}
+
+function asDiagnosticFields(raw: unknown): DiagnosticField[] {
+  if (!Array.isArray(raw)) return [];
+  const out: DiagnosticField[] = [];
+  const types = new Set([
+    "single_choice",
+    "multi_choice",
+    "text",
+    "name",
+    "company",
+    "email",
+    "phone",
+    "url",
+  ]);
+  raw.forEach((item, index) => {
+    if (!item || typeof item !== "object") return;
+    const row = item as Record<string, unknown>;
+    const id = typeof row["id"] === "string" ? row["id"].trim() : "";
+    const type = typeof row["type"] === "string" && types.has(row["type"]) ? row["type"] : "text";
+    const label = typeof row["label"] === "string" ? row["label"].trim() : "";
+    if (!id || !label) return;
+    const field: DiagnosticField = {
+      id: id.slice(0, 60),
+      type: type as DiagnosticField["type"],
+      label: label.slice(0, 240),
+      required: row["required"] !== false,
+      sort_order: typeof row["sort_order"] === "number" ? row["sort_order"] : index,
+    };
+    if (typeof row["placeholder"] === "string" && row["placeholder"].trim()) {
+      field.placeholder = row["placeholder"].trim().slice(0, 200);
+    }
+    if (type === "single_choice" || type === "multi_choice") {
+      field.options = asDiagnosticOptions(row["options"]);
+    }
+    out.push(field);
+  });
+  return out.sort((a, b) => a.sort_order - b.sort_order);
+}
+
+function asDiagnosticSteps(raw: unknown): DiagnosticStep[] {
+  if (!Array.isArray(raw) || raw.length === 0) return cloneDiagnosticDefaults();
+  const steps: DiagnosticStep[] = [];
+  raw.forEach((item, index) => {
+    if (!item || typeof item !== "object") return;
+    const row = item as Record<string, unknown>;
+    const id = typeof row["id"] === "string" ? row["id"].trim() : "";
+    const title = typeof row["title"] === "string" ? row["title"].trim() : "";
+    const fields = asDiagnosticFields(row["fields"]);
+    if (!id || !fields.length) return;
+    steps.push({
+      id: id.slice(0, 60),
+      title: (title || fields[0]?.label || "خطوة").slice(0, 160),
+      sort_order: typeof row["sort_order"] === "number" ? row["sort_order"] : index,
+      is_active: row["is_active"] !== false,
+      fields,
+    });
+  });
+  if (!steps.length) return cloneDiagnosticDefaults();
+  return steps.sort((a, b) => a.sort_order - b.sort_order);
+}
+
+export function asDiagnosticSettings(
+  data: Record<string, unknown> | undefined,
+): SiteDiagnosticSettings {
+  const d = data ?? {};
+  const str = (key: keyof SiteDiagnosticSettings, fallback: string) =>
+    typeof d[key] === "string" && (d[key] as string).trim()
+      ? (d[key] as string)
+      : fallback;
+
+  const currentVersion = DEFAULT_SITE_DIAGNOSTIC.funnel_version ?? 2;
+  const storedVersion = typeof d["funnel_version"] === "number" ? d["funnel_version"] : 0;
+  const useDefaults = storedVersion < currentVersion;
+  const steps = useDefaults ? cloneDiagnosticDefaults() : asDiagnosticSteps(d["steps"]);
+  const thanksTitle = useDefaults
+    ? DEFAULT_SITE_DIAGNOSTIC.thanks_title
+    : str("thanks_title", DEFAULT_SITE_DIAGNOSTIC.thanks_title);
+  const thanksDescription = useDefaults
+    ? DEFAULT_SITE_DIAGNOSTIC.thanks_description
+    : str("thanks_description", DEFAULT_SITE_DIAGNOSTIC.thanks_description);
+
+  return {
+    badge_text: str("badge_text", DEFAULT_SITE_DIAGNOSTIC.badge_text),
+    brand_label: str("brand_label", DEFAULT_SITE_DIAGNOSTIC.brand_label),
+    headline: str("headline", DEFAULT_SITE_DIAGNOSTIC.headline),
+    subheadline: str("subheadline", DEFAULT_SITE_DIAGNOSTIC.subheadline),
+    cta_label: str("cta_label", DEFAULT_SITE_DIAGNOSTIC.cta_label),
+    cta_microcopy: str("cta_microcopy", DEFAULT_SITE_DIAGNOSTIC.cta_microcopy),
+    video_url: typeof d["video_url"] === "string" ? d["video_url"] : DEFAULT_SITE_DIAGNOSTIC.video_url,
+    video_poster_url:
+      typeof d["video_poster_url"] === "string"
+        ? d["video_poster_url"]
+        : DEFAULT_SITE_DIAGNOSTIC.video_poster_url,
+    scroll_hint: str("scroll_hint", DEFAULT_SITE_DIAGNOSTIC.scroll_hint),
+    works_eyebrow: str("works_eyebrow", DEFAULT_SITE_DIAGNOSTIC.works_eyebrow),
+    works_title: str("works_title", DEFAULT_SITE_DIAGNOSTIC.works_title),
+    works_subtitle: str("works_subtitle", DEFAULT_SITE_DIAGNOSTIC.works_subtitle),
+    works_cta_microcopy: str("works_cta_microcopy", DEFAULT_SITE_DIAGNOSTIC.works_cta_microcopy),
+    works_empty: str("works_empty", DEFAULT_SITE_DIAGNOSTIC.works_empty),
+    closing_title: str("closing_title", DEFAULT_SITE_DIAGNOSTIC.closing_title),
+    closing_description: str("closing_description", DEFAULT_SITE_DIAGNOSTIC.closing_description),
+    float_hint: str("float_hint", DEFAULT_SITE_DIAGNOSTIC.float_hint),
+    wizard_title: str("wizard_title", DEFAULT_SITE_DIAGNOSTIC.wizard_title),
+    proof_enabled:
+      typeof d["proof_enabled"] === "boolean"
+        ? d["proof_enabled"]
+        : DEFAULT_SITE_DIAGNOSTIC.proof_enabled,
+    proof_metric: str("proof_metric", DEFAULT_SITE_DIAGNOSTIC.proof_metric),
+    proof_quote: str("proof_quote", DEFAULT_SITE_DIAGNOSTIC.proof_quote),
+    proof_author: str("proof_author", DEFAULT_SITE_DIAGNOSTIC.proof_author),
+    thanks_title: thanksTitle,
+    thanks_description: thanksDescription,
+    whatsapp_phone:
+      typeof d["whatsapp_phone"] === "string"
+        ? d["whatsapp_phone"]
+        : DEFAULT_SITE_DIAGNOSTIC.whatsapp_phone,
+    whatsapp_message_template: str(
+      "whatsapp_message_template",
+      DEFAULT_SITE_DIAGNOSTIC.whatsapp_message_template,
+    ),
+    funnel_version: Math.max(storedVersion, currentVersion),
+    steps,
+    ...(typeof d["updated_at"] === "string" ? { updated_at: d["updated_at"] } : {}),
+  };
+}
+
+export const diagnosticSettingsQuery = () =>
+  queryOptions({
+    queryKey: ["site-settings", "diagnostic"],
+    queryFn: async () =>
+      withFirebaseError(async () => {
+        const snap = await getDoc(doc(getDb(), "site_settings", "diagnostic"));
+        if (!snap.exists()) return { ...DEFAULT_SITE_DIAGNOSTIC };
+        return asDiagnosticSettings(snap.data() as Record<string, unknown>);
+      }),
+  });
+
+export const siteDiagnosticLeadsQuery = () =>
+  queryOptions({
+    queryKey: ["site-diagnostic-leads"],
+    queryFn: async () =>
+      withFirebaseError(async () => {
+        const snap = await getDocs(
+          query(collection(getDb(), "site_diagnostic_leads"), orderBy("created_at", "desc")),
+        );
+        return docsToRows<SiteDiagnosticLead>(snap.docs);
+      }),
+  });
+
+export const siteTeamAdminQuery = () =>
+  queryOptions({
+    queryKey: ["site-team", "all"],
+    queryFn: async () =>
+      withFirebaseError(async () => {
+        const snap = await getDocs(
+          query(collection(getDb(), "site_team"), orderBy("sort_order", "asc")),
+        );
+        return docsToRows<SiteTeamMember>(snap.docs);
+      }),
+  });

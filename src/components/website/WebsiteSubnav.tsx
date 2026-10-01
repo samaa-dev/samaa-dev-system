@@ -4,8 +4,12 @@ import { cn } from "@/lib/utils";
 const links: { to: string; label: string; exact?: boolean }[] = [
   { to: "/website", label: "نظرة عامة", exact: true },
   { to: "/website/settings", label: "الإعدادات" },
+  { to: "/website/sections", label: "أقسام الصفحة" },
   { to: "/website/projects", label: "مشاريع المعرض" },
+  { to: "/website/team", label: "الفريق" },
   { to: "/website/testimonials", label: "الآراء والعبارات" },
+  { to: "/website/diagnose", label: "صفحة التشخيص" },
+  { to: "/website/diagnose-leads", label: "طلبات التشخيص والأفكار" },
   { to: "/website/leads", label: "طلبات التواصل" },
 ];
 

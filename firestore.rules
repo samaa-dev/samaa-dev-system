@@ -275,5 +275,108 @@ service cloud.firestore {
       allow update: if isStaff() || auditPublicUpdateValid();
       allow read, delete: if isStaff();
     }
+
+    match /site_team/{id} {
+      allow read: if resource.data.is_visible == true || isStaff();
+      allow create, update, delete: if isStaff();
+    }
+
+    match /site_diagnostic_leads/{id} {
+      function utmValid(u) {
+        return (u is map)
+          && u.keys().hasOnly(['source', 'medium', 'campaign', 'term', 'content'])
+          && (u.get('source', '') is string)
+          && u.get('source', '').size() <= 120
+          && (u.get('medium', '') is string)
+          && u.get('medium', '').size() <= 120
+          && (u.get('campaign', '') is string)
+          && u.get('campaign', '').size() <= 120
+          && (u.get('term', '') is string)
+          && u.get('term', '').size() <= 120
+          && (u.get('content', '') is string)
+          && u.get('content', '').size() <= 120;
+      }
+
+      function funnelFieldsValid() {
+        return request.resource.data.funnel_status in ['in_progress', 'completed', 'left_to_idea']
+          && request.resource.data.last_step_index is int
+          && request.resource.data.last_step_index >= 0
+          && request.resource.data.last_step_index <= 40
+          && request.resource.data.last_step_id is string
+          && request.resource.data.last_step_id.size() <= 60
+          && request.resource.data.last_step_title is string
+          && request.resource.data.last_step_title.size() <= 160
+          && request.resource.data.steps_total is int
+          && request.resource.data.steps_total >= 1
+          && request.resource.data.steps_total <= 40
+          && request.resource.data.updated_at is string;
+      }
+
+      function diagnosticCreateValid() {
+        return request.resource.data.keys().hasAll([
+            'name', 'company', 'email', 'phone', 'website',
+            'answers_snapshot', 'status', 'source', 'created_at',
+            'funnel_status', 'last_step_index', 'last_step_id', 'last_step_title',
+            'steps_total', 'updated_at'
+          ])
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 120
+          && request.resource.data.company is string
+          && request.resource.data.company.size() <= 160
+          && request.resource.data.email is string
+          && request.resource.data.email.size() <= 200
+          && request.resource.data.phone is string
+          && request.resource.data.phone.size() >= 6
+          && request.resource.data.phone.size() <= 40
+          && request.resource.data.website is string
+          && request.resource.data.website.size() <= 300
+          && request.resource.data.answers_snapshot is list
+          && request.resource.data.answers_snapshot.size() <= 40
+          && request.resource.data.status == 'new'
+          && request.resource.data.source in ['diagnose', 'idea_consult']
+          && request.resource.data.created_at is string
+          && funnelFieldsValid()
+          && (request.resource.data.get('service', '') is string)
+          && (request.resource.data.get('price_dzd', 0) is number)
+          && (
+            request.resource.data.keys().hasAny(['utm']) == false
+            || utmValid(request.resource.data.utm)
+          );
+      }
+
+      /** Public progress updates for incomplete diagnose leads (ID is unguessable UUID). */
+      function diagnosticProgressUpdateValid() {
+        return resource.data.status == 'new'
+          && request.resource.data.status == 'new'
+          && request.resource.data.source in ['diagnose', 'idea_consult']
+          && request.resource.data.created_at == resource.data.created_at
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 120
+          && request.resource.data.company is string
+          && request.resource.data.company.size() <= 160
+          && request.resource.data.email is string
+          && request.resource.data.email.size() <= 200
+          && request.resource.data.phone is string
+          && request.resource.data.phone.size() >= 6
+          && request.resource.data.phone.size() <= 40
+          && request.resource.data.website is string
+          && request.resource.data.website.size() <= 300
+          && request.resource.data.answers_snapshot is list
+          && request.resource.data.answers_snapshot.size() <= 40
+          && funnelFieldsValid()
+          && (request.resource.data.get('service', '') is string)
+          && (request.resource.data.get('price_dzd', 0) is number)
+          && (
+            request.resource.data.keys().hasAny(['utm']) == false
+            || utmValid(request.resource.data.utm)
+          );
+      }
+
+      allow create: if diagnosticCreateValid();
+      allow update: if isStaff() || diagnosticProgressUpdateValid();
+      allow read, delete: if isStaff();
+    }
   }
 }

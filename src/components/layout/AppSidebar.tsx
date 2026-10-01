@@ -36,7 +36,7 @@ const items = [
   { title: "العملاء", url: "/clients", icon: Users, staffOnly: false },
   { title: "الفريق", url: "/team", icon: UserCog, staffOnly: false },
   { title: "الموقع", url: "/website", icon: Globe, staffOnly: true },
-  { title: "صفحة الهبوط", url: "/landing", icon: Rocket, staffOnly: true },
+  { title: "قمع التدقيق", url: "/landing", icon: Rocket, staffOnly: true },
 ] as const;
 
 type Props = {

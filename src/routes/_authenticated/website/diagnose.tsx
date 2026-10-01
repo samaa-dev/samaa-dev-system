@@ -98,6 +98,7 @@ function WebsiteDiagnosePage() {
       withFirebaseError(async () => {
         const payload = {
           ...form,
+          funnel_version: DEFAULT_SITE_DIAGNOSTIC.funnel_version ?? 2,
           steps: form.steps.map((s, i) => ({
             ...s,
             sort_order: i,
@@ -167,11 +168,17 @@ function WebsiteDiagnosePage() {
 
       <section className="mb-8 space-y-4 rounded-xl border border-border bg-card p-5">
         <h2 className="text-lg font-semibold">محتوى Hero</h2>
+        <Field label="اسم العلامة في الهيدر" value={form.brand_label} onChange={(v) => patch("brand_label", v)} />
         <Field label="شارة (Badge)" value={form.badge_text} onChange={(v) => patch("badge_text", v)} />
         <Field label="العنوان الرئيسي" value={form.headline} onChange={(v) => patch("headline", v)} multiline />
         <Field label="النص الفرعي" value={form.subheadline} onChange={(v) => patch("subheadline", v)} multiline />
         <Field label="نص زر CTA" value={form.cta_label} onChange={(v) => patch("cta_label", v)} />
         <Field label="Micro-copy تحت الزر" value={form.cta_microcopy} onChange={(v) => patch("cta_microcopy", v)} />
+        <Field
+          label="نص التلميح للنزول لمعرض الأعمال"
+          value={form.scroll_hint}
+          onChange={(v) => patch("scroll_hint", v)}
+        />
       </section>
 
       <section className="mb-8 space-y-4 rounded-xl border border-border bg-card p-5">
@@ -205,6 +212,50 @@ function WebsiteDiagnosePage() {
       </section>
 
       <section className="mb-8 space-y-4 rounded-xl border border-border bg-card p-5">
+        <h2 className="text-lg font-semibold">قسم معرض الأعمال</h2>
+        <Field label="شارة القسم" value={form.works_eyebrow} onChange={(v) => patch("works_eyebrow", v)} />
+        <Field label="عنوان القسم" value={form.works_title} onChange={(v) => patch("works_title", v)} />
+        <Field
+          label="وصف القسم"
+          value={form.works_subtitle}
+          onChange={(v) => patch("works_subtitle", v)}
+          multiline
+        />
+        <Field
+          label="نص تحت زر CTA داخل المعرض"
+          value={form.works_cta_microcopy}
+          onChange={(v) => patch("works_cta_microcopy", v)}
+        />
+        <Field
+          label="رسالة عند عدم وجود مشاريع"
+          value={form.works_empty}
+          onChange={(v) => patch("works_empty", v)}
+          multiline
+        />
+      </section>
+
+      <section className="mb-8 space-y-4 rounded-xl border border-border bg-card p-5">
+        <h2 className="text-lg font-semibold">قسم الإغلاق والشريط العائم</h2>
+        <Field label="عنوان الإغلاق" value={form.closing_title} onChange={(v) => patch("closing_title", v)} />
+        <Field
+          label="وصف الإغلاق"
+          value={form.closing_description}
+          onChange={(v) => patch("closing_description", v)}
+          multiline
+        />
+        <Field
+          label="نص الشريط العائم (بجانب الزر)"
+          value={form.float_hint}
+          onChange={(v) => patch("float_hint", v)}
+        />
+        <Field
+          label="عنوان صفحة الأسئلة (الهيدر)"
+          value={form.wizard_title}
+          onChange={(v) => patch("wizard_title", v)}
+        />
+      </section>
+
+      <section className="mb-8 space-y-4 rounded-xl border border-border bg-card p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold">إثبات اجتماعي (صفحة الهبوط)</h2>
           <div className="flex items-center gap-2 text-sm">
@@ -216,7 +267,7 @@ function WebsiteDiagnosePage() {
           </div>
         </div>
         <p className="text-sm text-muted-foreground">
-          اختياري — إن فُعّل يظهر مع قسم الأعمال بعد التمرير. الشاشة الأولى تعتمد على معرض الأعمال فقط.
+          اختياري — إن فُعّل يظهر داخل قسم الأعمال بعد التمرير.
         </p>
         <Field
           label="النتيجة / الرقم (مثال: −42% وقت تشغيلي)"
@@ -262,19 +313,34 @@ function WebsiteDiagnosePage() {
       <section className="space-y-4 rounded-xl border border-border bg-card p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold">خطوات القمع</h2>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() =>
-              setForm((prev) => ({
-                ...prev,
-                steps: [...prev.steps, emptyStep(prev.steps.length)],
-              }))
-            }
-          >
-            <Plus className="h-4 w-4" />
-            إضافة خطوة
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() =>
+                setForm((prev) => ({
+                  ...prev,
+                  steps: structuredClone(DEFAULT_SITE_DIAGNOSTIC.steps),
+                  funnel_version: DEFAULT_SITE_DIAGNOSTIC.funnel_version ?? 2,
+                }))
+              }
+            >
+              استعادة الأسئلة الافتراضية
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() =>
+                setForm((prev) => ({
+                  ...prev,
+                  steps: [...prev.steps, emptyStep(prev.steps.length)],
+                }))
+              }
+            >
+              <Plus className="h-4 w-4" />
+              إضافة خطوة
+            </Button>
+          </div>
         </div>
 
         {form.steps.map((step, si) => (

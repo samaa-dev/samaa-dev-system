@@ -140,3 +140,16 @@ export const SITE_PROJECT_STATUS_LABELS: Record<string, string> = {
   draft: "مسودة",
   published: "منشور",
 };
+
+export const SITE_TEAM_ROLE_LABELS: Record<string, string> = {
+  manager: "مدير",
+  employee: "موظف",
+};
+
+export {
+  DEFAULT_SITE_DIAGNOSTIC,
+  DIAGNOSTIC_FIELD_TYPE_LABELS,
+  SITE_DIAGNOSTIC_FUNNEL_STATUS_LABELS,
+  SITE_DIAGNOSTIC_LEAD_SOURCE_LABELS,
+  SITE_DIAGNOSTIC_LEAD_STATUS_LABELS,
+} from "@/lib/diagnostic-defaults";

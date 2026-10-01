@@ -105,7 +105,7 @@ function WebsiteSectionsPage() {
   }, [enabled, queryClient]);
 
   useEffect(() => {
-    if (!settings.data) return;
+    if (!settings.data?.layout) return;
     setSections(orderedPageSections(settings.data.layout));
   }, [settings.data]);
 
@@ -223,6 +223,13 @@ function WebsiteSectionsPage() {
       </p>
 
       <div className="space-y-3">
+        {settings.isLoading ? (
+          <p className="text-sm text-muted-foreground">جاري تحميل الأقسام…</p>
+        ) : sections.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            لا توجد أقسام بعد. اضغط «إضافة قسم» أو انتظر تهيئة الافتراضيات.
+          </p>
+        ) : null}
         {sections.map((section, index) => (
           <div
             key={section.id}

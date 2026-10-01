@@ -4,29 +4,27 @@ import type {
   SiteDiagnosticSettings,
 } from "@/integrations/firebase/types";
 
-/** كل خطوة = سؤال واحد فقط */
+export const STATUS_FIELD_ID = "field-status";
+export const STATUS_EXISTING_ID = "existing";
+export const STATUS_IDEA_ID = "idea";
+
+/** كل خطوة = سؤال واحد، ما عدا خطوة التواصل المجمّعة */
 const DEFAULT_DIAGNOSTIC_STEPS: DiagnosticStep[] = [
   {
-    id: "step-domains",
-    title: "مجالات العمل",
+    id: "step-status",
+    title: "بداية التشخيص",
     sort_order: 0,
     is_active: true,
     fields: [
       {
-        id: "field-domains",
-        type: "multi_choice",
-        label: "ما مجالات عمل شركتكم؟",
+        id: STATUS_FIELD_ID,
+        type: "single_choice",
+        label: "هل لديك شركة أو مشروع قائم حاليًا؟",
         required: true,
         sort_order: 0,
         options: [
-          { id: "ops", label: "عمليات وتشغيل" },
-          { id: "sales", label: "مبيعات وتسويق" },
-          { id: "finance", label: "مالية ومحاسبة" },
-          { id: "hr", label: "موارد بشرية" },
-          { id: "support", label: "دعم عملاء" },
-          { id: "logistics", label: "لوجستيات وتوصيل" },
-          { id: "tech", label: "تقنية ومنتجات رقمية" },
-          { id: "other", label: "أخرى" },
+          { id: STATUS_EXISTING_ID, label: "نعم، شركة قائمة" },
+          { id: STATUS_IDEA_ID, label: "لا، ما زالت فكرة" },
         ],
       },
     ],
@@ -40,7 +38,7 @@ const DEFAULT_DIAGNOSTIC_STEPS: DiagnosticStep[] = [
       {
         id: "field-team-size",
         type: "single_choice",
-        label: "كم عدد أفراد فريقكم تقريباً؟",
+        label: "كم عدد أفراد فريقكم؟",
         required: true,
         sort_order: 0,
         options: [
@@ -61,8 +59,8 @@ const DEFAULT_DIAGNOSTIC_STEPS: DiagnosticStep[] = [
       {
         id: "field-manual-task",
         type: "text",
-        label: "ما هي أكثر مهمة يدوية تستنزف وقت فريقكم وتتمنون أتمتتها؟",
-        placeholder: "مثال: إدخال الطلبات يدوياً من واتساب إلى Excel…",
+        label: "ما أكثر مهمة تستهلك وقت فريقكم وتتمنون أتمتتها؟",
+        placeholder: "مثال: إدخال الطلبات يدويًا من واتساب إلى Excel.",
         required: true,
         sort_order: 0,
       },
@@ -81,32 +79,31 @@ const DEFAULT_DIAGNOSTIC_STEPS: DiagnosticStep[] = [
         required: true,
         sort_order: 0,
         options: [
-          { id: "daily", label: "يومياً" },
-          { id: "weekly", label: "أسبوعياً" },
-          { id: "monthly", label: "شهرياً" },
+          { id: "several-daily", label: "عدة مرات يوميًا" },
+          { id: "daily", label: "يوميًا" },
+          { id: "weekly", label: "أسبوعيًا" },
+          { id: "monthly", label: "شهريًا" },
         ],
       },
     ],
   },
   {
-    id: "step-tools",
-    title: "الأدوات الحالية",
+    id: "step-method",
+    title: "طريقة التنفيذ",
     sort_order: 4,
     is_active: true,
     fields: [
       {
-        id: "field-tools",
-        type: "multi_choice",
-        label: "ما الأدوات التي تعتمدون عليها حالياً؟",
+        id: "field-method",
+        type: "single_choice",
+        label: "كيف تنفذون هذه المهمة حاليًا؟",
         required: true,
         sort_order: 0,
         options: [
           { id: "excel", label: "Excel / جداول" },
           { id: "whatsapp", label: "WhatsApp" },
-          { id: "crm", label: "CRM" },
-          { id: "erp", label: "ERP" },
-          { id: "internal", label: "نظام داخلي" },
-          { id: "paper", label: "ورق / يدوي بالكامل" },
+          { id: "system", label: "نظام أو برنامج" },
+          { id: "paper", label: "ورق / يدوي" },
           { id: "other", label: "أخرى" },
         ],
       },
@@ -114,27 +111,27 @@ const DEFAULT_DIAGNOSTIC_STEPS: DiagnosticStep[] = [
   },
   {
     id: "step-timeline",
-    title: "الموعد المستهدف",
+    title: "موعد التنفيذ",
     sort_order: 5,
     is_active: true,
     fields: [
       {
         id: "field-timeline",
         type: "single_choice",
-        label: "متى تخططون للتنفيذ؟",
+        label: "متى تفكرون في تنفيذ الحل؟",
         required: true,
         sort_order: 0,
         options: [
-          { id: "2m", label: "خلال شهرين" },
-          { id: "3-6m", label: "3–6 أشهر" },
-          { id: "explore", label: "استكشاف عام" },
+          { id: "1-2m", label: "خلال 1–2 شهر" },
+          { id: "3-6m", label: "خلال 3–6 أشهر" },
+          { id: "explore", label: "مجرد استكشاف حاليًا" },
         ],
       },
     ],
   },
   {
     id: "step-role",
-    title: "صفة الطلب",
+    title: "صفتك",
     sort_order: 6,
     is_active: true,
     fields: [
@@ -147,88 +144,40 @@ const DEFAULT_DIAGNOSTIC_STEPS: DiagnosticStep[] = [
         options: [
           { id: "decision", label: "صاحب القرار" },
           { id: "manager", label: "مدير" },
-          { id: "executor", label: "منفذ" },
+          { id: "executor", label: "موظف / منفذ" },
         ],
       },
     ],
   },
   {
-    id: "step-name",
-    title: "الاسم",
+    id: "step-contact",
+    title: "بيانات التواصل",
     sort_order: 7,
     is_active: true,
     fields: [
       {
         id: "field-name",
         type: "name",
-        label: "ما اسمك؟",
+        label: "الاسم",
         placeholder: "اسمك الكامل",
         required: true,
         sort_order: 0,
       },
-    ],
-  },
-  {
-    id: "step-company",
-    title: "الشركة",
-    sort_order: 8,
-    is_active: true,
-    fields: [
       {
         id: "field-company",
         type: "company",
-        label: "ما اسم شركتك؟",
+        label: "اسم الشركة",
         placeholder: "اسم الشركة أو النشاط",
         required: true,
-        sort_order: 0,
+        sort_order: 1,
       },
-    ],
-  },
-  {
-    id: "step-website",
-    title: "الموقع",
-    sort_order: 9,
-    is_active: true,
-    fields: [
-      {
-        id: "field-website",
-        type: "url",
-        label: "رابط موقع الشركة (اختياري)",
-        placeholder: "https://…",
-        required: false,
-        sort_order: 0,
-      },
-    ],
-  },
-  {
-    id: "step-phone",
-    title: "واتساب",
-    sort_order: 10,
-    is_active: true,
-    fields: [
       {
         id: "field-phone",
         type: "phone",
-        label: "ما رقم واتسابك؟",
+        label: "رقم واتساب",
         placeholder: "05xxxxxxxx",
         required: true,
-        sort_order: 0,
-      },
-    ],
-  },
-  {
-    id: "step-email",
-    title: "البريد",
-    sort_order: 11,
-    is_active: true,
-    fields: [
-      {
-        id: "field-email",
-        type: "email",
-        label: "ما بريدك الإلكتروني؟",
-        placeholder: "you@company.com",
-        required: true,
-        sort_order: 0,
+        sort_order: 2,
       },
     ],
   },
@@ -236,22 +185,35 @@ const DEFAULT_DIAGNOSTIC_STEPS: DiagnosticStep[] = [
 
 export const DEFAULT_SITE_DIAGNOSTIC: SiteDiagnosticSettings = {
   badge_text: "⚡ تشخيص تقني وتشغيلي مخصص لشركتك",
+  brand_label: "Samaa Dev",
   headline: "أين يضيع وقت فريقك؟",
   subheadline: "تشخيص مجاني لفرص الأتمتة — تقرير مخصص خلال يومي عمل",
   cta_label: "ابدأ التشخيص المجاني",
   cta_microcopy: "دقيقتان فقط • بدون أي التزام",
   video_url: "",
   video_poster_url: "",
+  scroll_hint: "للإطلاع على معرض الأعمال انزل للأسفل",
+  works_eyebrow: "معرض الأعمال",
+  works_title: "أعمال حقيقية… ونتائج ملموسة",
+  works_subtitle:
+    "أنظمة وأتمتة بنيناها لشركات تشبه تحدياتك — اطّلع ثم ابدأ تشخيص شركتك مجاناً.",
+  works_cta_microcopy: "ابدأ الآن — نفس التشخيص المجاني خلال دقيقتين",
+  works_empty: "سيظهر هنا معرض الأعمال بعد نشر المشاريع من لوحة التحكم.",
+  closing_title: "جاهز تعرف أين يضيع وقت فريقك؟",
+  closing_description: "أجب عن أسئلة قصيرة واحصل على تقرير تشخيصي مخصص خلال يومي عمل.",
+  float_hint: "تشخيص مجاني لشركتك",
+  wizard_title: "تشخيص Samaa Dev",
   proof_enabled: false,
   proof_metric: "",
   proof_quote: "",
   proof_author: "",
-  thanks_title: "تم استلام طلب التشخيص بنجاح",
+  thanks_title: "شكراً لك — استلمنا إجاباتك",
   thanks_description:
-    "فريق Samaa Dev سيراجع إجاباتك ويُعدّ تقريراً مخصصاً. يمكنك الإسراع بالتواصل عبر واتساب الآن.",
+    "سنراجع ما شاركته معنا ونتواصل معك قريباً. نقدّر ثقتك بـ Samaa Dev، ويسعدنا أن نكون جزءاً من رحلتك.",
   whatsapp_phone: "",
   whatsapp_message_template:
-    "مرحباً Samaa Dev، أتممتُ تشخيص الشركة.\nالاسم: {{name}}\nالشركة: {{company}}\nأرغب بمتابعة التقرير التشخيصي.",
+    "مرحباً Samaa Dev، أتممتُ تشخيص الشركة.\nالاسم: {{name}}\nالشركة: {{company}}\nأرحّب بمتابعتكم.",
+  funnel_version: 5,
   steps: DEFAULT_DIAGNOSTIC_STEPS,
 };
 
@@ -260,6 +222,20 @@ export const SITE_DIAGNOSTIC_LEAD_STATUS_LABELS: Record<SiteDiagnosticLeadStatus
   contacted: "تم التواصل",
   qualified: "مؤهّل",
   closed: "مغلق",
+};
+
+export const SITE_DIAGNOSTIC_LEAD_SOURCE_LABELS: Record<"diagnose" | "idea_consult", string> = {
+  diagnose: "تشخيص شركات",
+  idea_consult: "استشارة فكرة",
+};
+
+export const SITE_DIAGNOSTIC_FUNNEL_STATUS_LABELS: Record<
+  "in_progress" | "completed" | "left_to_idea",
+  string
+> = {
+  in_progress: "لم يُكمل",
+  completed: "مكتمل",
+  left_to_idea: "انتقل لمسار الفكرة",
 };
 
 export const DIAGNOSTIC_FIELD_TYPE_LABELS: Record<string, string> = {

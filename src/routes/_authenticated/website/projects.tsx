@@ -6,6 +6,10 @@ import { toast } from "sonner";
 import { deleteDoc, doc, setDoc, updateDoc } from "firebase/firestore";
 
 import { WebsiteShell } from "@/components/website/WebsiteShell";
+import {
+  LocalizedFieldsTabs,
+  LocalizedTextField,
+} from "@/components/website/LocalizedFields";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
 import { DataTable } from "@/components/DataTable";
 import { RowActions } from "@/components/RowActions";
@@ -14,7 +18,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +44,13 @@ import {
 } from "@/lib/data";
 import { SITE_PROJECT_STATUS_LABELS } from "@/lib/site-defaults";
 import { uploadSiteMedia } from "@/lib/site-storage";
+import {
+  asLocalized,
+  emptyLocalized,
+  trimLocalized,
+  type LocalizedString,
+} from "@/lib/i18n/localized";
+import { textOf } from "@/lib/site-localize";
 
 export const Route = createFileRoute("/_authenticated/website/projects")({
   head: () => ({
@@ -54,11 +64,11 @@ export const Route = createFileRoute("/_authenticated/website/projects")({
 
 type FormState = {
   id?: string;
-  title: string;
+  title: LocalizedString;
   slug: string;
   category: string;
-  short_description: string;
-  detailed_description: string;
+  short_description: LocalizedString;
+  detailed_description: LocalizedString;
   tech_stack: string;
   cover_image_url: string | null;
   gallery_urls: string[];
@@ -73,15 +83,15 @@ type FormState = {
 
 function emptyForm(category: string): FormState {
   return {
-    title: "",
+    title: emptyLocalized(),
     slug: "",
     category,
-    short_description: "",
-    detailed_description: "",
+    short_description: emptyLocalized(),
+    detailed_description: emptyLocalized(),
     tech_stack: "",
     cover_image_url: null,
     gallery_urls: [],
-    impact_metrics: [{ label: "", value: "" }],
+    impact_metrics: [],
     live_url: "",
     playstore_url: "",
     appstore_url: "",
@@ -94,15 +104,15 @@ function emptyForm(category: string): FormState {
 function toForm(p: SiteProject): FormState {
   return {
     id: p.id,
-    title: p.title,
+    title: asLocalized(p.title),
     slug: p.slug,
     category: p.category,
-    short_description: p.short_description,
-    detailed_description: p.detailed_description,
+    short_description: asLocalized(p.short_description),
+    detailed_description: asLocalized(p.detailed_description),
     tech_stack: p.tech_stack.join("، "),
     cover_image_url: p.cover_image_url,
     gallery_urls: p.gallery_urls ?? [],
-    impact_metrics: p.impact_metrics?.length ? p.impact_metrics : [{ label: "", value: "" }],
+    impact_metrics: p.impact_metrics ?? [],
     live_url: p.live_url ?? "",
     playstore_url: p.playstore_url ?? "",
     appstore_url: p.appstore_url ?? "",
@@ -136,21 +146,24 @@ function WebsiteProjectsPage() {
       withFirebaseError(async () => {
         const now = nowIso();
         const id = state.id ?? newId();
+        const title = trimLocalized(state.title);
+        const titleAr = title.ar || title.en || title.fr;
+        if (!titleAr) throw new Error("عنوان المشروع مطلوب");
         const payload = {
-          title: state.title.trim(),
+          title,
           slug:
             state.slug.trim() ||
-            state.title.trim().replace(/\s+/g, "-").toLowerCase().slice(0, 60),
+            titleAr.replace(/\s+/g, "-").toLowerCase().slice(0, 60),
           category: state.category,
-          short_description: state.short_description.trim(),
-          detailed_description: state.detailed_description.trim(),
+          short_description: trimLocalized(state.short_description),
+          detailed_description: trimLocalized(state.detailed_description),
           tech_stack: state.tech_stack
             .split(/[،,]/)
             .map((t) => t.trim())
             .filter(Boolean),
           cover_image_url: state.cover_image_url,
           gallery_urls: state.gallery_urls,
-          impact_metrics: state.impact_metrics.filter((m) => m.label && m.value),
+          impact_metrics: state.impact_metrics.filter((m) => textOf(asLocalized(m.label)) && m.value),
           live_url: state.live_url.trim() || null,
           playstore_url: state.playstore_url.trim() || null,
           appstore_url: state.appstore_url.trim() || null,
@@ -158,7 +171,16 @@ function WebsiteProjectsPage() {
           status: state.status,
           sort_order: Number(state.sort_order) || 0,
           updated_at: now,
-          ...(state.id ? {} : { created_at: now }),
+          ...(state.id
+            ? {}
+            : {
+                created_at: now,
+                client_name: emptyLocalized(),
+                challenge: emptyLocalized(),
+                solution: emptyLocalized(),
+                results: emptyLocalized(),
+                timeline: emptyLocalized(),
+              }),
         };
         if (state.id) {
           await updateDoc(doc(getDb(), "site_projects", id), payload);
@@ -224,7 +246,7 @@ function WebsiteProjectsPage() {
           {
             key: "title",
             header: "المشروع",
-            value: (p: SiteProject) => p.title,
+            value: (p: SiteProject) => textOf(p.title),
             cell: (p: SiteProject) => (
               <div className="flex items-center gap-3">
                 {p.cover_image_url ? (
@@ -235,7 +257,7 @@ function WebsiteProjectsPage() {
                   />
                 ) : null}
                 <div>
-                  <div className="font-medium">{p.title}</div>
+                  <div className="font-medium">{textOf(p.title)}</div>
                   <div className="text-xs text-muted-foreground">
                     {categoryLabel(categories.data, p.category)}
                   </div>
@@ -280,12 +302,37 @@ function WebsiteProjectsPage() {
           </DialogHeader>
           {form && (
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label>العنوان</Label>
-                <Input
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                />
+              <div className="sm:col-span-2">
+                <LocalizedFieldsTabs>
+                  {(locale) => (
+                    <div className="space-y-3">
+                      <LocalizedTextField
+                        label="العنوان"
+                        locale={locale}
+                        value={form.title}
+                        onChange={(title) => setForm({ ...form, title })}
+                      />
+                      <LocalizedTextField
+                        label="وصف مختصر"
+                        locale={locale}
+                        multiline
+                        rows={2}
+                        value={form.short_description}
+                        onChange={(short_description) => setForm({ ...form, short_description })}
+                      />
+                      <LocalizedTextField
+                        label="وصف تفصيلي"
+                        locale={locale}
+                        multiline
+                        rows={4}
+                        value={form.detailed_description}
+                        onChange={(detailed_description) =>
+                          setForm({ ...form, detailed_description })
+                        }
+                      />
+                    </div>
+                  )}
+                </LocalizedFieldsTabs>
               </div>
               <div className="space-y-1.5">
                 <Label>Slug</Label>
@@ -307,27 +354,11 @@ function WebsiteProjectsPage() {
                   <SelectContent>
                     {(categories.data ?? []).map((c) => (
                       <SelectItem key={c.id} value={c.slug}>
-                        {c.label}
+                        {textOf(asLocalized(c.label))}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label>وصف مختصر</Label>
-                <Textarea
-                  rows={2}
-                  value={form.short_description}
-                  onChange={(e) => setForm({ ...form, short_description: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label>وصف تفصيلي</Label>
-                <Textarea
-                  rows={4}
-                  value={form.detailed_description}
-                  onChange={(e) => setForm({ ...form, detailed_description: e.target.value })}
-                />
               </div>
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>التقنيات (مفصولة بفاصلة)</Label>
@@ -426,7 +457,7 @@ function WebsiteProjectsPage() {
               إلغاء
             </Button>
             <Button
-              disabled={save.isPending || !form?.title.trim()}
+              disabled={save.isPending || !textOf(form?.title)}
               onClick={() => form && save.mutate(form)}
             >
               حفظ
