@@ -5,7 +5,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import { useMemo, useState } from "react";
 import { Archive, Phone, RotateCcw, Search } from "lucide-react";
 
-import { WebsiteShell } from "@/components/website/WebsiteShell";
+import { LandingShell } from "@/components/landing/LandingShell";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
@@ -52,20 +52,28 @@ import {
 export const Route = createFileRoute("/_authenticated/website/diagnose-leads")({
   head: () => ({
     meta: [
-      { title: "طلبات التشخيص والأفكار — Samaa Dev" },
+      { title: "طلبات الحجز — صفحة الهبوط — Samaa Dev" },
       { name: "robots", content: "noindex" },
     ],
   }),
   component: WebsiteDiagnoseLeadsPage,
 });
 
-type LeadSourceFilter = "all" | "diagnose" | "idea_consult";
+type LeadSourceFilter = "all" | "diagnose" | "idea_consult" | "landing";
 type FunnelFilter = "all" | SiteDiagnosticFunnelStatus;
 type ArchiveFilter = "active" | "archived";
 type UtmCampaignFilter = "all" | "none" | string;
 
-function leadSource(l: SiteDiagnosticLead): "diagnose" | "idea_consult" {
-  return l.source === "idea_consult" ? "idea_consult" : "diagnose";
+function leadSource(l: SiteDiagnosticLead): "diagnose" | "idea_consult" | "landing" {
+  if (l.source === "idea_consult") return "idea_consult";
+  if (l.source === "landing") return "landing";
+  return "diagnose";
+}
+
+function sourceBadgeTone(src: "diagnose" | "idea_consult" | "landing") {
+  if (src === "idea_consult") return "info" as const;
+  if (src === "landing") return "warning" as const;
+  return "success" as const;
 }
 
 function isArchived(l: SiteDiagnosticLead): boolean {
@@ -198,7 +206,7 @@ function LeadCard({
       </div>
 
       <div className="mt-3 flex flex-wrap gap-1.5">
-        <StatusBadge tone={src === "idea_consult" ? "info" : "success"}>
+        <StatusBadge tone={sourceBadgeTone(src)}>
           {SITE_DIAGNOSTIC_LEAD_SOURCE_LABELS[src]}
         </StatusBadge>
         <LeadUtmCell utm={leadUtm(lead)} compact />
@@ -277,7 +285,7 @@ function WebsiteDiagnoseLeadsPage() {
   const leads = useQuery({ ...siteDiagnosticLeadsQuery(), enabled });
   const [archiveId, setArchiveId] = useState<string | null>(null);
   const [detail, setDetail] = useState<SiteDiagnosticLead | null>(null);
-  const [sourceFilter, setSourceFilter] = useState<LeadSourceFilter>("all");
+  const [sourceFilter, setSourceFilter] = useState<LeadSourceFilter>("landing");
   const [funnelFilter, setFunnelFilter] = useState<FunnelFilter>("all");
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilter>("active");
   const [utmFilter, setUtmFilter] = useState<UtmCampaignFilter>("all");
@@ -289,6 +297,7 @@ function WebsiteDiagnoseLeadsPage() {
   const counts = useMemo(() => {
     let diagnose = 0;
     let idea = 0;
+    let landing = 0;
     let withUtm = 0;
     let noUtm = 0;
     let inProgress = 0;
@@ -302,7 +311,9 @@ function WebsiteDiagnoseLeadsPage() {
         continue;
       }
       active += 1;
-      if (leadSource(l) === "idea_consult") idea += 1;
+      const src = leadSource(l);
+      if (src === "idea_consult") idea += 1;
+      else if (src === "landing") landing += 1;
       else diagnose += 1;
       if (utmCampaignKey(l) || leadUtm(l)) withUtm += 1;
       else noUtm += 1;
@@ -315,6 +326,7 @@ function WebsiteDiagnoseLeadsPage() {
       all: active,
       diagnose,
       idea,
+      landing,
       withUtm,
       noUtm,
       inProgress,
@@ -390,9 +402,11 @@ function WebsiteDiagnoseLeadsPage() {
           ? "لا توجد طلبات لهذه الحملة / الفلتر."
           : sourceFilter === "idea_consult"
             ? "لا توجد طلبات استشارة أفكار بعد."
-            : sourceFilter === "diagnose"
-              ? "لا توجد طلبات تشخيص شركات بعد."
-              : "لا توجد طلبات بعد.";
+            : sourceFilter === "landing"
+              ? "لا توجد طلبات من صفحة الهبوط بعد."
+              : sourceFilter === "diagnose"
+                ? "لا توجد طلبات تشخيص شركات بعد."
+                : "لا توجد طلبات بعد.";
 
   const detailUtm = detail ? leadUtm(detail) : undefined;
   const detailPhone = detail ? displayPhone(detail) : "";
@@ -400,9 +414,9 @@ function WebsiteDiagnoseLeadsPage() {
   const confirmingArchive = archiveTarget ? !isArchived(archiveTarget) : true;
 
   return (
-    <WebsiteShell
-      title="طلبات التشخيص والأفكار"
-      description="تتبع الطلبات من أول إجابة — اتصل مباشرة أو أرشف للمراجعة لاحقاً"
+    <LandingShell
+      title="طلبات الحجز"
+      description="طلبات قمع صفحة الهبوط ومسار الفكرة — اتصل مباشرة أو أرشف لاحقاً"
     >
       <div className="mb-4 space-y-3">
         <Tabs value={archiveFilter} onValueChange={(v) => setArchiveFilter(v as ArchiveFilter)}>
@@ -421,6 +435,9 @@ function WebsiteDiagnoseLeadsPage() {
             <TabsTrigger value="all">الكل ({counts.all})</TabsTrigger>
             <TabsTrigger value="diagnose">
               {SITE_DIAGNOSTIC_LEAD_SOURCE_LABELS.diagnose} ({counts.diagnose})
+            </TabsTrigger>
+            <TabsTrigger value="landing">
+              {SITE_DIAGNOSTIC_LEAD_SOURCE_LABELS.landing} ({counts.landing})
             </TabsTrigger>
             <TabsTrigger value="idea_consult">
               {SITE_DIAGNOSTIC_LEAD_SOURCE_LABELS.idea_consult} ({counts.idea})
@@ -625,6 +642,6 @@ function WebsiteDiagnoseLeadsPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </WebsiteShell>
+    </LandingShell>
   );
 }

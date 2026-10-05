@@ -25,5 +25,13 @@ service firebase.storage {
         && request.resource.size < 8 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
     }
+
+    // VSL / landing videos — larger files, video content only.
+    match /site/videos/{fileName} {
+      allow read: if true;
+      allow write: if isStaff()
+        && request.resource.size < 300 * 1024 * 1024
+        && request.resource.contentType.matches('video/.*');
+    }
   }
 }

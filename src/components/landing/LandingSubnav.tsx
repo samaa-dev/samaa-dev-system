@@ -3,8 +3,8 @@ import { cn } from "@/lib/utils";
 
 const links: { to: string; label: string; exact?: boolean }[] = [
   { to: "/landing", label: "نظرة عامة", exact: true },
-  { to: "/landing/settings", label: "محتوى الأسئلة" },
-  { to: "/landing/leads", label: "الطلبات" },
+  { to: "/landing/vsl", label: "محتوى الصفحة" },
+  { to: "/website/diagnose-leads", label: "طلبات الحجز" },
 ];
 
 export function LandingSubnav() {
@@ -21,22 +21,16 @@ export function LandingSubnav() {
             key={link.to}
             to={link.to}
             className={cn(
-              "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              "rounded-full px-4 py-2 text-sm font-medium transition-colors",
               active
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
             {link.label}
           </Link>
         );
       })}
-      <Link
-        to="/website/diagnose"
-        className="rounded-lg bg-muted px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
-      >
-        صفحة التشخيص الجديدة ←
-      </Link>
     </div>
   );
 }

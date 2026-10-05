@@ -228,6 +228,7 @@ export type SiteSocialSettings = {
   github: string;
   instagram: string;
   twitter: string;
+  youtube: string;
 };
 
 export type SiteAboutSettings = {
@@ -304,6 +305,40 @@ export type SiteLead = {
   project_details: string;
   status: SiteLeadStatus;
   created_at: string;
+};
+
+/** VSL ad landing page (static site landing.html) — site_settings/vsl_landing */
+export type SiteVslSettings = {
+  video_url: string;
+  video_poster_url: string;
+  badge_text: string;
+  headline: string;
+  subheadline: string;
+  cta_label: string;
+  whatsapp_phone: string;
+  whatsapp_greeting: string;
+  meta_pixel_id: string;
+  works_limit: number;
+  updated_at?: string;
+};
+
+export type SiteBookingStatus = "new" | "contacted" | "scheduled" | "won" | "lost";
+
+/** Free-consultation bookings from the VSL landing page — site_bookings/{id} */
+export type SiteBooking = {
+  id: string;
+  name: string;
+  phone: string;
+  business_type: string;
+  daily_volume: string;
+  problem: string;
+  status: SiteBookingStatus;
+  source: "vsl_landing";
+  page: string;
+  utm?: SiteDiagnosticLeadUtm;
+  notes: string;
+  created_at: string;
+  updated_at: string;
 };
 
 export type SiteAuditLeadStatus = "in_progress" | "new" | "contacted" | "qualified" | "closed";
@@ -499,8 +534,8 @@ export type SiteDiagnosticLead = {
   website: string;
   answers_snapshot: DiagnosticAnswerSnapshot[];
   status: SiteDiagnosticLeadStatus;
-  /** diagnose = قمع الشركة القائمة · idea_consult = مسار الفكرة */
-  source: "diagnose" | "idea_consult";
+  /** diagnose = قمع الشركة · idea_consult = مسار الفكرة · landing = صفحة الهبوط */
+  source: "diagnose" | "idea_consult" | "landing";
   service?: string;
   price_dzd?: number;
   /** Attribution from ad landing URL (?utm_source=&utm_campaign=…) */

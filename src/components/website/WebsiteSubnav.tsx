@@ -3,13 +3,8 @@ import { cn } from "@/lib/utils";
 
 const links: { to: string; label: string; exact?: boolean }[] = [
   { to: "/website", label: "نظرة عامة", exact: true },
-  { to: "/website/settings", label: "الإعدادات" },
-  { to: "/website/sections", label: "أقسام الصفحة" },
+  { to: "/website/settings", label: "التواصل" },
   { to: "/website/projects", label: "مشاريع المعرض" },
-  { to: "/website/team", label: "الفريق" },
-  { to: "/website/testimonials", label: "الآراء والعبارات" },
-  { to: "/website/diagnose", label: "صفحة التشخيص" },
-  { to: "/website/diagnose-leads", label: "طلبات التشخيص والأفكار" },
   { to: "/website/leads", label: "طلبات التواصل" },
 ];
 
@@ -27,10 +22,10 @@ export function WebsiteSubnav() {
             key={link.to}
             to={link.to}
             className={cn(
-              "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              "rounded-full px-4 py-2 text-sm font-medium transition-colors",
               active
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
             {link.label}

@@ -6,6 +6,7 @@ import type {
   SiteHeroSettings,
   SiteServicesSettings,
   SiteSocialSettings,
+  SiteVslSettings,
 } from "@/integrations/firebase/types";
 
 export const DEFAULT_SITE_HERO: SiteHeroSettings = {
@@ -30,6 +31,7 @@ export const DEFAULT_SITE_SOCIAL: SiteSocialSettings = {
   github: "",
   instagram: "",
   twitter: "",
+  youtube: "",
 };
 
 export const DEFAULT_SITE_ABOUT: SiteAboutSettings = {
@@ -126,6 +128,27 @@ export const SITE_LEAD_STATUS_LABELS: Record<string, string> = {
   new: "جديد",
   in_progress: "قيد المتابعة",
   completed: "مكتمل",
+};
+
+export const DEFAULT_SITE_VSL: SiteVslSettings = {
+  video_url: "",
+  video_poster_url: "",
+  badge_text: "حلول تقنية حقيقية لمشاكل تشغيلية",
+  headline: "من فوضى العمل اليومي إلى *نظام يتحمّل نموّك.*",
+  subheadline: "احكِ لنا مشكلتك — نقترح الحل التقني المناسب.",
+  cta_label: "احجز استشارتك المجانية الآن",
+  whatsapp_phone: "",
+  whatsapp_greeting: "السلام عليكم، أريد حجز استشارة مجانية لحل مشكلة تشغيلية في مشروعي.",
+  meta_pixel_id: "",
+  works_limit: 6,
+};
+
+export const SITE_BOOKING_STATUS_LABELS: Record<string, string> = {
+  new: "جديد",
+  contacted: "تم التواصل",
+  scheduled: "موعد محدد",
+  won: "تحوّل لعميل",
+  lost: "غير مناسب",
 };
 
 export const SITE_AUDIT_LEAD_STATUS_LABELS: Record<string, string> = {

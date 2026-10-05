@@ -224,9 +224,13 @@ export const SITE_DIAGNOSTIC_LEAD_STATUS_LABELS: Record<SiteDiagnosticLeadStatus
   closed: "مغلق",
 };
 
-export const SITE_DIAGNOSTIC_LEAD_SOURCE_LABELS: Record<"diagnose" | "idea_consult", string> = {
+export const SITE_DIAGNOSTIC_LEAD_SOURCE_LABELS: Record<
+  "diagnose" | "idea_consult" | "landing",
+  string
+> = {
   diagnose: "تشخيص شركات",
   idea_consult: "استشارة فكرة",
+  landing: "صفحة الهبوط",
 };
 
 export const SITE_DIAGNOSTIC_FUNNEL_STATUS_LABELS: Record<

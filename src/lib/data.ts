@@ -32,6 +32,8 @@ import type {
   SiteHeroSettings,
   SiteLead,
   SiteAuditLead,
+  SiteBooking,
+  SiteVslSettings,
   LandingAuditSettings,
   LandingOption,
   SiteProject,
@@ -52,6 +54,7 @@ import {
   DEFAULT_SITE_SERVICES,
   DEFAULT_SITE_SOCIAL,
   DEFAULT_LANDING_AUDIT,
+  DEFAULT_SITE_VSL,
 } from "@/lib/site-defaults";
 import { DEFAULT_SITE_DIAGNOSTIC } from "@/lib/diagnostic-defaults";
 import { createDefaultLayout, parseLayout, type SiteLayoutSettings } from "@/lib/site-sections";
@@ -74,6 +77,8 @@ export type {
   SiteCategory,
   SiteLead,
   SiteAuditLead,
+  SiteBooking,
+  SiteVslSettings,
   LandingAuditSettings,
   SiteDiagnosticLead,
   SiteDiagnosticSettings,
@@ -403,6 +408,7 @@ function asSocial(data: Record<string, unknown> | undefined): SiteSocialSettings
     instagram:
       typeof data?.["instagram"] === "string" ? data["instagram"] : DEFAULT_SITE_SOCIAL.instagram,
     twitter: typeof data?.["twitter"] === "string" ? data["twitter"] : DEFAULT_SITE_SOCIAL.twitter,
+    youtube: typeof data?.["youtube"] === "string" ? data["youtube"] : DEFAULT_SITE_SOCIAL.youtube,
   };
 }
 
@@ -691,6 +697,50 @@ export const siteAuditLeadsQuery = () =>
           query(collection(getDb(), "site_audit_leads"), orderBy("created_at", "desc")),
         );
         return docsToRows<SiteAuditLead>(snap.docs);
+      }),
+  });
+
+/* ── VSL ad landing (static landing.html) ── */
+
+export function asVslSettings(data: Record<string, unknown> | undefined): SiteVslSettings {
+  const d = data ?? {};
+  const str = (key: keyof SiteVslSettings) =>
+    typeof d[key] === "string" ? (d[key] as string) : (DEFAULT_SITE_VSL[key] as string);
+  const limit = typeof d["works_limit"] === "number" ? d["works_limit"] : DEFAULT_SITE_VSL.works_limit;
+  return {
+    video_url: str("video_url"),
+    video_poster_url: str("video_poster_url"),
+    badge_text: str("badge_text"),
+    headline: str("headline"),
+    subheadline: str("subheadline"),
+    cta_label: str("cta_label"),
+    whatsapp_phone: str("whatsapp_phone"),
+    whatsapp_greeting: str("whatsapp_greeting"),
+    meta_pixel_id: str("meta_pixel_id"),
+    works_limit: Math.min(12, Math.max(1, Math.round(limit))),
+    ...(typeof d["updated_at"] === "string" ? { updated_at: d["updated_at"] } : {}),
+  };
+}
+
+export const vslSettingsQuery = () =>
+  queryOptions({
+    queryKey: ["site-settings", "vsl_landing"],
+    queryFn: async () =>
+      withFirebaseError(async () => {
+        const snap = await getDoc(doc(getDb(), "site_settings", "vsl_landing"));
+        return asVslSettings(snap.exists() ? (snap.data() as Record<string, unknown>) : undefined);
+      }),
+  });
+
+export const siteBookingsQuery = () =>
+  queryOptions({
+    queryKey: ["site-bookings"],
+    queryFn: async () =>
+      withFirebaseError(async () => {
+        const snap = await getDocs(
+          query(collection(getDb(), "site_bookings"), orderBy("created_at", "desc")),
+        );
+        return docsToRows<SiteBooking>(snap.docs);
       }),
   });
 

@@ -17,8 +17,10 @@ import { Route as AuthenticatedOverviewRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedClientsIndexRouteImport } from './routes/_authenticated/clients/index'
 import { Route as AuthenticatedFinanceIndexRouteImport } from './routes/_authenticated/finance/index'
 import { Route as AuthenticatedLandingIndexRouteImport } from './routes/_authenticated/landing/index'
+import { Route as AuthenticatedLandingBookingsRouteImport } from './routes/_authenticated/landing/bookings'
 import { Route as AuthenticatedLandingLeadsRouteImport } from './routes/_authenticated/landing/leads'
 import { Route as AuthenticatedLandingSettingsRouteImport } from './routes/_authenticated/landing/settings'
+import { Route as AuthenticatedLandingVslRouteImport } from './routes/_authenticated/landing/vsl'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects/index'
 import { Route as AuthenticatedProjectsProjectIdRouteImport } from './routes/_authenticated/projects/$projectId'
 import { Route as AuthenticatedSprintsIndexRouteImport } from './routes/_authenticated/sprints/index'
@@ -77,6 +79,12 @@ const AuthenticatedLandingIndexRoute =
     path: '/landing/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedLandingBookingsRoute =
+  AuthenticatedLandingBookingsRouteImport.update({
+    id: '/landing/bookings',
+    path: '/landing/bookings',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedLandingLeadsRoute =
   AuthenticatedLandingLeadsRouteImport.update({
     id: '/landing/leads',
@@ -89,6 +97,11 @@ const AuthenticatedLandingSettingsRoute =
     path: '/landing/settings',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedLandingVslRoute = AuthenticatedLandingVslRouteImport.update({
+  id: '/landing/vsl',
+  path: '/landing/vsl',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedProjectsIndexRoute =
   AuthenticatedProjectsIndexRouteImport.update({
     id: '/projects/',
@@ -183,8 +196,10 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/overview': typeof AuthenticatedOverviewRoute
+  '/landing/bookings': typeof AuthenticatedLandingBookingsRoute
   '/landing/leads': typeof AuthenticatedLandingLeadsRoute
   '/landing/settings': typeof AuthenticatedLandingSettingsRoute
+  '/landing/vsl': typeof AuthenticatedLandingVslRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
   '/sprints/$sprintId': typeof AuthenticatedSprintsSprintIdRoute
   '/website/diagnose': typeof AuthenticatedWebsiteDiagnoseRoute
@@ -209,8 +224,10 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/overview': typeof AuthenticatedOverviewRoute
+  '/landing/bookings': typeof AuthenticatedLandingBookingsRoute
   '/landing/leads': typeof AuthenticatedLandingLeadsRoute
   '/landing/settings': typeof AuthenticatedLandingSettingsRoute
+  '/landing/vsl': typeof AuthenticatedLandingVslRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
   '/sprints/$sprintId': typeof AuthenticatedSprintsSprintIdRoute
   '/website/diagnose': typeof AuthenticatedWebsiteDiagnoseRoute
@@ -237,8 +254,10 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/overview': typeof AuthenticatedOverviewRoute
+  '/_authenticated/landing/bookings': typeof AuthenticatedLandingBookingsRoute
   '/_authenticated/landing/leads': typeof AuthenticatedLandingLeadsRoute
   '/_authenticated/landing/settings': typeof AuthenticatedLandingSettingsRoute
+  '/_authenticated/landing/vsl': typeof AuthenticatedLandingVslRoute
   '/_authenticated/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
   '/_authenticated/sprints/$sprintId': typeof AuthenticatedSprintsSprintIdRoute
   '/_authenticated/website/diagnose': typeof AuthenticatedWebsiteDiagnoseRoute
@@ -265,8 +284,10 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/overview'
+    | '/landing/bookings'
     | '/landing/leads'
     | '/landing/settings'
+    | '/landing/vsl'
     | '/projects/$projectId'
     | '/sprints/$sprintId'
     | '/website/diagnose'
@@ -291,8 +312,10 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/overview'
+    | '/landing/bookings'
     | '/landing/leads'
     | '/landing/settings'
+    | '/landing/vsl'
     | '/projects/$projectId'
     | '/sprints/$sprintId'
     | '/website/diagnose'
@@ -318,8 +341,10 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/dashboard'
     | '/_authenticated/overview'
+    | '/_authenticated/landing/bookings'
     | '/_authenticated/landing/leads'
     | '/_authenticated/landing/settings'
+    | '/_authenticated/landing/vsl'
     | '/_authenticated/projects/$projectId'
     | '/_authenticated/sprints/$sprintId'
     | '/_authenticated/website/diagnose'
@@ -404,6 +429,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLandingIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/landing/bookings': {
+      id: '/_authenticated/landing/bookings'
+      path: '/landing/bookings'
+      fullPath: '/landing/bookings'
+      preLoaderRoute: typeof AuthenticatedLandingBookingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/landing/leads': {
       id: '/_authenticated/landing/leads'
       path: '/landing/leads'
@@ -416,6 +448,13 @@ declare module '@tanstack/react-router' {
       path: '/landing/settings'
       fullPath: '/landing/settings'
       preLoaderRoute: typeof AuthenticatedLandingSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/landing/vsl': {
+      id: '/_authenticated/landing/vsl'
+      path: '/landing/vsl'
+      fullPath: '/landing/vsl'
+      preLoaderRoute: typeof AuthenticatedLandingVslRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/projects/': {
@@ -529,8 +568,10 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedOverviewRoute: typeof AuthenticatedOverviewRoute
+  AuthenticatedLandingBookingsRoute: typeof AuthenticatedLandingBookingsRoute
   AuthenticatedLandingLeadsRoute: typeof AuthenticatedLandingLeadsRoute
   AuthenticatedLandingSettingsRoute: typeof AuthenticatedLandingSettingsRoute
+  AuthenticatedLandingVslRoute: typeof AuthenticatedLandingVslRoute
   AuthenticatedProjectsProjectIdRoute: typeof AuthenticatedProjectsProjectIdRoute
   AuthenticatedSprintsSprintIdRoute: typeof AuthenticatedSprintsSprintIdRoute
   AuthenticatedWebsiteDiagnoseRoute: typeof AuthenticatedWebsiteDiagnoseRoute
@@ -554,8 +595,10 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedOverviewRoute: AuthenticatedOverviewRoute,
+  AuthenticatedLandingBookingsRoute: AuthenticatedLandingBookingsRoute,
   AuthenticatedLandingLeadsRoute: AuthenticatedLandingLeadsRoute,
   AuthenticatedLandingSettingsRoute: AuthenticatedLandingSettingsRoute,
+  AuthenticatedLandingVslRoute: AuthenticatedLandingVslRoute,
   AuthenticatedProjectsProjectIdRoute: AuthenticatedProjectsProjectIdRoute,
   AuthenticatedSprintsSprintIdRoute: AuthenticatedSprintsSprintIdRoute,
   AuthenticatedWebsiteDiagnoseRoute: AuthenticatedWebsiteDiagnoseRoute,

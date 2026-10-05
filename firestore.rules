@@ -281,6 +281,61 @@ service cloud.firestore {
       allow create, update, delete: if isStaff();
     }
 
+    // Free-consultation bookings from the VSL ad landing page (static landing.html).
+    match /site_bookings/{id} {
+      function bookingUtmValid(u) {
+        return (u is map)
+          && u.keys().hasOnly(['source', 'medium', 'campaign', 'term', 'content'])
+          && (u.get('source', '') is string)
+          && u.get('source', '').size() <= 120
+          && (u.get('medium', '') is string)
+          && u.get('medium', '').size() <= 120
+          && (u.get('campaign', '') is string)
+          && u.get('campaign', '').size() <= 120
+          && (u.get('term', '') is string)
+          && u.get('term', '').size() <= 120
+          && (u.get('content', '') is string)
+          && u.get('content', '').size() <= 120;
+      }
+
+      function bookingCreateValid() {
+        return request.resource.data.keys().hasAll([
+            'name', 'phone', 'business_type', 'daily_volume', 'problem',
+            'status', 'source', 'page', 'notes', 'created_at', 'updated_at'
+          ])
+          && request.resource.data.keys().hasOnly([
+            'name', 'phone', 'business_type', 'daily_volume', 'problem',
+            'status', 'source', 'page', 'notes', 'created_at', 'updated_at', 'utm'
+          ])
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 120
+          && request.resource.data.phone is string
+          && request.resource.data.phone.size() >= 8
+          && request.resource.data.phone.size() <= 40
+          && request.resource.data.business_type is string
+          && request.resource.data.business_type.size() <= 120
+          && request.resource.data.daily_volume is string
+          && request.resource.data.daily_volume.size() <= 80
+          && request.resource.data.problem is string
+          && request.resource.data.problem.size() <= 4000
+          && request.resource.data.status == 'new'
+          && request.resource.data.source == 'vsl_landing'
+          && request.resource.data.page is string
+          && request.resource.data.page.size() <= 200
+          && request.resource.data.notes == ''
+          && request.resource.data.created_at is string
+          && request.resource.data.updated_at is string
+          && (
+            request.resource.data.keys().hasAny(['utm']) == false
+            || bookingUtmValid(request.resource.data.utm)
+          );
+      }
+
+      allow create: if bookingCreateValid();
+      allow read, update, delete: if isStaff();
+    }
+
     match /site_diagnostic_leads/{id} {
       function utmValid(u) {
         return (u is map)
@@ -334,7 +389,7 @@ service cloud.firestore {
           && request.resource.data.answers_snapshot is list
           && request.resource.data.answers_snapshot.size() <= 40
           && request.resource.data.status == 'new'
-          && request.resource.data.source in ['diagnose', 'idea_consult']
+          && request.resource.data.source in ['diagnose', 'idea_consult', 'landing']
           && request.resource.data.created_at is string
           && funnelFieldsValid()
           && (request.resource.data.get('service', '') is string)
@@ -349,7 +404,7 @@ service cloud.firestore {
       function diagnosticProgressUpdateValid() {
         return resource.data.status == 'new'
           && request.resource.data.status == 'new'
-          && request.resource.data.source in ['diagnose', 'idea_consult']
+          && request.resource.data.source in ['diagnose', 'idea_consult', 'landing']
           && request.resource.data.created_at == resource.data.created_at
           && request.resource.data.name is string
           && request.resource.data.name.size() > 0
