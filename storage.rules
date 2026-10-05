@@ -1,0 +1,37 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function roleDoc() {
+      return firestore.get(/databases/(default)/documents/user_roles/$(request.auth.uid));
+    }
+
+    function isStaff() {
+      return signedIn()
+        && firestore.exists(/databases/(default)/documents/user_roles/$(request.auth.uid))
+        && (
+          'admin' in roleDoc().data.roles
+          || 'manager' in roleDoc().data.roles
+        );
+    }
+
+    // Public website media — readable by everyone; writable by staff only.
+    match /site/{allPaths=**} {
+      allow read: if true;
+      allow write: if isStaff()
+        && request.resource.size < 8 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // VSL / landing videos — larger files, video content only.
+    match /site/videos/{fileName} {
+      allow read: if true;
+      allow write: if isStaff()
+        && request.resource.size < 300 * 1024 * 1024
+        && request.resource.contentType.matches('video/.*');
+    }
+  }
+}

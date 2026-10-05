@@ -144,5 +144,294 @@ service cloud.firestore {
       allow create, update: if isStaff();
       allow delete: if isAdmin();
     }
+
+    // ── Public website CMS (site_*) ──
+
+    match /site_settings/{key} {
+      allow read: if true;
+      allow create, update, delete: if isStaff();
+    }
+
+    match /site_categories/{id} {
+      allow read: if true;
+      allow create, update, delete: if isStaff();
+    }
+
+    match /site_projects/{id} {
+      allow read: if resource.data.status == 'published' || isStaff();
+      allow create, update, delete: if isStaff();
+    }
+
+    match /site_testimonials/{id} {
+      allow read: if resource.data.is_visible == true || isStaff();
+      allow create, update, delete: if isStaff();
+    }
+
+    match /site_leads/{id} {
+      allow create: if request.resource.data.keys().hasAll([
+          'name', 'email', 'phone', 'service_type', 'project_details', 'status', 'created_at'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.email is string
+        && request.resource.data.email.size() > 3
+        && request.resource.data.email.size() <= 200
+        && request.resource.data.phone is string
+        && request.resource.data.phone.size() <= 40
+        && request.resource.data.service_type is string
+        && request.resource.data.service_type.size() <= 120
+        && request.resource.data.project_details is string
+        && request.resource.data.project_details.size() <= 4000
+        && request.resource.data.status == 'new'
+        && request.resource.data.created_at is string;
+      allow read, update, delete: if isStaff();
+    }
+
+    match /site_audit_leads/{id} {
+      function auditCreateValid() {
+        return request.resource.data.keys().hasAll([
+            'name', 'whatsapp', 'business_type', 'monthly_volume', 'team_size',
+            'challenges', 'status', 'source', 'created_at', 'updated_at', 'notes',
+            'step_reached', 'step_label', 'completed', 'visitor_key', 'is_repeat'
+          ])
+          && request.resource.data.name is string
+          && request.resource.data.name.size() <= 120
+          && request.resource.data.whatsapp is string
+          && request.resource.data.whatsapp.size() <= 40
+          && request.resource.data.business_type is string
+          && request.resource.data.business_type.size() > 0
+          && request.resource.data.business_type.size() <= 120
+          && request.resource.data.monthly_volume is string
+          && request.resource.data.monthly_volume.size() <= 80
+          && request.resource.data.team_size is string
+          && request.resource.data.team_size.size() <= 80
+          && request.resource.data.challenges is list
+          && request.resource.data.challenges.size() <= 2
+          && request.resource.data.status == 'in_progress'
+          && request.resource.data.source == 'audit_landing'
+          && request.resource.data.created_at is string
+          && request.resource.data.updated_at is string
+          && request.resource.data.notes is string
+          && request.resource.data.notes.size() == 0
+          && request.resource.data.step_reached is int
+          && request.resource.data.step_reached >= 1
+          && request.resource.data.step_reached <= 5
+          && request.resource.data.step_label is string
+          && request.resource.data.step_label.size() <= 80
+          && request.resource.data.completed == false
+          && request.resource.data.visitor_key is string
+          && request.resource.data.visitor_key.size() >= 8
+          && request.resource.data.visitor_key.size() <= 80
+          && request.resource.data.is_repeat is bool;
+      }
+
+      function auditPublicUpdateValid() {
+        return resource.data.source == 'audit_landing'
+          && resource.data.completed == false
+          && request.resource.data.source == 'audit_landing'
+          && request.resource.data.created_at == resource.data.created_at
+          && request.resource.data.visitor_key == resource.data.visitor_key
+          && request.resource.data.is_repeat == resource.data.is_repeat
+          && request.resource.data.keys().hasAll([
+              'name', 'whatsapp', 'business_type', 'monthly_volume', 'team_size',
+              'challenges', 'status', 'source', 'created_at', 'updated_at', 'notes',
+              'step_reached', 'step_label', 'completed', 'visitor_key', 'is_repeat'
+            ])
+          && request.resource.data.name is string
+          && request.resource.data.name.size() <= 120
+          && request.resource.data.whatsapp is string
+          && request.resource.data.whatsapp.size() <= 40
+          && request.resource.data.business_type is string
+          && request.resource.data.business_type.size() > 0
+          && request.resource.data.business_type.size() <= 120
+          && request.resource.data.monthly_volume is string
+          && request.resource.data.monthly_volume.size() <= 80
+          && request.resource.data.team_size is string
+          && request.resource.data.team_size.size() <= 80
+          && request.resource.data.challenges is list
+          && request.resource.data.challenges.size() <= 2
+          && request.resource.data.status in ['in_progress', 'new']
+          && request.resource.data.updated_at is string
+          && request.resource.data.notes == resource.data.notes
+          && request.resource.data.step_reached is int
+          && request.resource.data.step_reached >= resource.data.step_reached
+          && request.resource.data.step_reached <= 6
+          && request.resource.data.step_label is string
+          && request.resource.data.step_label.size() <= 80
+          && request.resource.data.completed is bool
+          && (
+            (request.resource.data.completed == false
+              && request.resource.data.status == 'in_progress')
+            ||
+            (request.resource.data.completed == true
+              && request.resource.data.status == 'new'
+              && request.resource.data.name.size() > 0
+              && request.resource.data.whatsapp.size() >= 8)
+          );
+      }
+
+      allow create: if auditCreateValid();
+      allow update: if isStaff() || auditPublicUpdateValid();
+      allow read, delete: if isStaff();
+    }
+
+    match /site_team/{id} {
+      allow read: if resource.data.is_visible == true || isStaff();
+      allow create, update, delete: if isStaff();
+    }
+
+    // Free-consultation bookings from the VSL ad landing page (static landing.html).
+    match /site_bookings/{id} {
+      function bookingUtmValid(u) {
+        return (u is map)
+          && u.keys().hasOnly(['source', 'medium', 'campaign', 'term', 'content'])
+          && (u.get('source', '') is string)
+          && u.get('source', '').size() <= 120
+          && (u.get('medium', '') is string)
+          && u.get('medium', '').size() <= 120
+          && (u.get('campaign', '') is string)
+          && u.get('campaign', '').size() <= 120
+          && (u.get('term', '') is string)
+          && u.get('term', '').size() <= 120
+          && (u.get('content', '') is string)
+          && u.get('content', '').size() <= 120;
+      }
+
+      function bookingCreateValid() {
+        return request.resource.data.keys().hasAll([
+            'name', 'phone', 'business_type', 'daily_volume', 'problem',
+            'status', 'source', 'page', 'notes', 'created_at', 'updated_at'
+          ])
+          && request.resource.data.keys().hasOnly([
+            'name', 'phone', 'business_type', 'daily_volume', 'problem',
+            'status', 'source', 'page', 'notes', 'created_at', 'updated_at', 'utm'
+          ])
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 120
+          && request.resource.data.phone is string
+          && request.resource.data.phone.size() >= 8
+          && request.resource.data.phone.size() <= 40
+          && request.resource.data.business_type is string
+          && request.resource.data.business_type.size() <= 120
+          && request.resource.data.daily_volume is string
+          && request.resource.data.daily_volume.size() <= 80
+          && request.resource.data.problem is string
+          && request.resource.data.problem.size() <= 4000
+          && request.resource.data.status == 'new'
+          && request.resource.data.source == 'vsl_landing'
+          && request.resource.data.page is string
+          && request.resource.data.page.size() <= 200
+          && request.resource.data.notes == ''
+          && request.resource.data.created_at is string
+          && request.resource.data.updated_at is string
+          && (
+            request.resource.data.keys().hasAny(['utm']) == false
+            || bookingUtmValid(request.resource.data.utm)
+          );
+      }
+
+      allow create: if bookingCreateValid();
+      allow read, update, delete: if isStaff();
+    }
+
+    match /site_diagnostic_leads/{id} {
+      function utmValid(u) {
+        return (u is map)
+          && u.keys().hasOnly(['source', 'medium', 'campaign', 'term', 'content'])
+          && (u.get('source', '') is string)
+          && u.get('source', '').size() <= 120
+          && (u.get('medium', '') is string)
+          && u.get('medium', '').size() <= 120
+          && (u.get('campaign', '') is string)
+          && u.get('campaign', '').size() <= 120
+          && (u.get('term', '') is string)
+          && u.get('term', '').size() <= 120
+          && (u.get('content', '') is string)
+          && u.get('content', '').size() <= 120;
+      }
+
+      function funnelFieldsValid() {
+        return request.resource.data.funnel_status in ['in_progress', 'completed', 'left_to_idea']
+          && request.resource.data.last_step_index is int
+          && request.resource.data.last_step_index >= 0
+          && request.resource.data.last_step_index <= 40
+          && request.resource.data.last_step_id is string
+          && request.resource.data.last_step_id.size() <= 60
+          && request.resource.data.last_step_title is string
+          && request.resource.data.last_step_title.size() <= 160
+          && request.resource.data.steps_total is int
+          && request.resource.data.steps_total >= 1
+          && request.resource.data.steps_total <= 40
+          && request.resource.data.updated_at is string;
+      }
+
+      function diagnosticCreateValid() {
+        return request.resource.data.keys().hasAll([
+            'name', 'company', 'email', 'phone', 'website',
+            'answers_snapshot', 'status', 'source', 'created_at',
+            'funnel_status', 'last_step_index', 'last_step_id', 'last_step_title',
+            'steps_total', 'updated_at'
+          ])
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 120
+          && request.resource.data.company is string
+          && request.resource.data.company.size() <= 160
+          && request.resource.data.email is string
+          && request.resource.data.email.size() <= 200
+          && request.resource.data.phone is string
+          && request.resource.data.phone.size() >= 6
+          && request.resource.data.phone.size() <= 40
+          && request.resource.data.website is string
+          && request.resource.data.website.size() <= 300
+          && request.resource.data.answers_snapshot is list
+          && request.resource.data.answers_snapshot.size() <= 40
+          && request.resource.data.status == 'new'
+          && request.resource.data.source in ['diagnose', 'idea_consult', 'landing']
+          && request.resource.data.created_at is string
+          && funnelFieldsValid()
+          && (request.resource.data.get('service', '') is string)
+          && (request.resource.data.get('price_dzd', 0) is number)
+          && (
+            request.resource.data.keys().hasAny(['utm']) == false
+            || utmValid(request.resource.data.utm)
+          );
+      }
+
+      /** Public progress updates for incomplete diagnose leads (ID is unguessable UUID). */
+      function diagnosticProgressUpdateValid() {
+        return resource.data.status == 'new'
+          && request.resource.data.status == 'new'
+          && request.resource.data.source in ['diagnose', 'idea_consult', 'landing']
+          && request.resource.data.created_at == resource.data.created_at
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 120
+          && request.resource.data.company is string
+          && request.resource.data.company.size() <= 160
+          && request.resource.data.email is string
+          && request.resource.data.email.size() <= 200
+          && request.resource.data.phone is string
+          && request.resource.data.phone.size() >= 6
+          && request.resource.data.phone.size() <= 40
+          && request.resource.data.website is string
+          && request.resource.data.website.size() <= 300
+          && request.resource.data.answers_snapshot is list
+          && request.resource.data.answers_snapshot.size() <= 40
+          && funnelFieldsValid()
+          && (request.resource.data.get('service', '') is string)
+          && (request.resource.data.get('price_dzd', 0) is number)
+          && (
+            request.resource.data.keys().hasAny(['utm']) == false
+            || utmValid(request.resource.data.utm)
+          );
+      }
+
+      allow create: if diagnosticCreateValid();
+      allow update: if isStaff() || diagnosticProgressUpdateValid();
+      allow read, delete: if isStaff();
+    }
   }
 }

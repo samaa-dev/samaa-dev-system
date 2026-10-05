@@ -1,6 +1,7 @@
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
+import { getStorage, type FirebaseStorage } from "firebase/storage";
 
 function readConfig() {
   const apiKey = import.meta.env["VITE_FIREBASE_API_KEY"] as string | undefined;
@@ -43,6 +44,7 @@ function getFirebaseApp(): FirebaseApp {
 
 let _auth: Auth | undefined;
 let _db: Firestore | undefined;
+let _storage: FirebaseStorage | undefined;
 
 /** Real Auth instance — required by Firebase SDK (do not wrap in Proxy). */
 export function getFirebaseAuth(): Auth {
@@ -54,4 +56,10 @@ export function getFirebaseAuth(): Auth {
 export function getDb(): Firestore {
   if (!_db) _db = getFirestore(getFirebaseApp());
   return _db;
+}
+
+/** Firebase Storage — used for public website media under site/. */
+export function getFirebaseStorage(): FirebaseStorage {
+  if (!_storage) _storage = getStorage(getFirebaseApp());
+  return _storage;
 }

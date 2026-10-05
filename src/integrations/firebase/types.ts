@@ -184,3 +184,371 @@ export type KpiSettings = {
   updated_by: string | null;
   widgets: KpiWidgetConfig[];
 };
+
+/* ── Public website CMS (site_*) — separate from operational projects ── */
+
+export type SiteProjectStatus = "published" | "draft";
+export type SiteLeadStatus = "new" | "in_progress" | "completed";
+
+/** Multilingual CMS string (ar/en/fr). */
+export type SiteLocalizedString = {
+  ar: string;
+  en: string;
+  fr: string;
+};
+
+export type SiteImpactMetric = { label: SiteLocalizedString | string; value: string };
+
+export type SiteServiceItem = {
+  title: string;
+  description: string;
+  icon: string;
+  subtitle?: string;
+  tags?: string[];
+};
+
+export type SiteHeroSettings = {
+  headline: string;
+  subtitle: string;
+  cta_label: string;
+  projects_count: string;
+  satisfaction: string;
+  experience_years: string;
+};
+
+export type SiteContactSettings = {
+  whatsapp: string;
+  email: string;
+  phone: string;
+  address: string;
+};
+
+export type SiteSocialSettings = {
+  linkedin: string;
+  github: string;
+  instagram: string;
+  twitter: string;
+  youtube: string;
+};
+
+export type SiteAboutSettings = {
+  text: string;
+};
+
+export type SiteServicesSettings = {
+  items: SiteServiceItem[];
+};
+
+export type SiteSettingsMap = {
+  hero: SiteHeroSettings;
+  contact: SiteContactSettings;
+  social: SiteSocialSettings;
+  about: SiteAboutSettings;
+  services: SiteServicesSettings;
+};
+
+export type SiteCategory = {
+  id: string;
+  slug: string;
+  label: SiteLocalizedString | string;
+  sort_order: number;
+  created_at: string;
+};
+
+export type SiteProject = {
+  id: string;
+  title: SiteLocalizedString;
+  slug: string;
+  category: string;
+  short_description: SiteLocalizedString;
+  detailed_description: SiteLocalizedString;
+  client_name: SiteLocalizedString;
+  challenge: SiteLocalizedString;
+  solution: SiteLocalizedString;
+  results: SiteLocalizedString;
+  timeline: SiteLocalizedString;
+  tech_stack: string[];
+  cover_image_url: string | null;
+  cover_video_url: string | null;
+  cover_prefer_video: boolean;
+  gallery_urls: string[];
+  impact_metrics: SiteImpactMetric[];
+  live_url: string | null;
+  playstore_url: string | null;
+  appstore_url: string | null;
+  is_featured: boolean;
+  status: SiteProjectStatus;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type SiteTestimonial = {
+  id: string;
+  client_name: SiteLocalizedString;
+  client_role: SiteLocalizedString;
+  company_name: SiteLocalizedString;
+  avatar_url: string | null;
+  quote_text: SiteLocalizedString;
+  rating: number;
+  is_visible: boolean;
+  sort_order: number;
+  created_at: string;
+};
+
+export type SiteLead = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  service_type: string;
+  project_details: string;
+  status: SiteLeadStatus;
+  created_at: string;
+};
+
+/** VSL ad landing page (static site landing.html) — site_settings/vsl_landing */
+export type SiteVslSettings = {
+  video_url: string;
+  video_poster_url: string;
+  badge_text: string;
+  headline: string;
+  subheadline: string;
+  cta_label: string;
+  whatsapp_phone: string;
+  whatsapp_greeting: string;
+  meta_pixel_id: string;
+  works_limit: number;
+  updated_at?: string;
+};
+
+export type SiteBookingStatus = "new" | "contacted" | "scheduled" | "won" | "lost";
+
+/** Free-consultation bookings from the VSL landing page — site_bookings/{id} */
+export type SiteBooking = {
+  id: string;
+  name: string;
+  phone: string;
+  business_type: string;
+  daily_volume: string;
+  problem: string;
+  status: SiteBookingStatus;
+  source: "vsl_landing";
+  page: string;
+  utm?: SiteDiagnosticLeadUtm;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type SiteAuditLeadStatus = "in_progress" | "new" | "contacted" | "qualified" | "closed";
+
+export type LandingOption = {
+  id: string;
+  short: string;
+  label: string;
+};
+
+export type LandingAuditSettings = {
+  welcome_title: string;
+  welcome_subtitle: string;
+  business_types: LandingOption[];
+  monthly_volumes: LandingOption[];
+  team_sizes: LandingOption[];
+  challenges: LandingOption[];
+  volume_title: string;
+  volume_subtitle: string;
+  team_title: string;
+  team_subtitle: string;
+  challenges_title: string;
+  challenges_subtitle: string;
+  contact_title: string;
+  contact_subtitle: string;
+  updated_at?: string;
+};
+
+export type SiteAuditLead = {
+  id: string;
+  name: string;
+  whatsapp: string;
+  business_type: string;
+  monthly_volume: string;
+  team_size: string;
+  challenges: string[];
+  status: SiteAuditLeadStatus;
+  source: "audit_landing";
+  created_at: string;
+  updated_at: string;
+  notes: string;
+  step_reached: number;
+  step_label: string;
+  completed: boolean;
+  visitor_key: string;
+  is_repeat: boolean;
+};
+
+export type SiteTeamRoleType = "manager" | "employee";
+export type SiteTeamPageTemplate = "portrait" | "split" | "editorial" | "minimal";
+export type SiteTeamCardStyle = "photo" | "classic" | "compact" | "featured";
+export type SiteTeamCtaMode = "book_call" | "whatsapp" | "contact" | "custom" | "none";
+
+export const SITE_TEAM_PAGE_TEMPLATE_LABELS: Record<SiteTeamPageTemplate, string> = {
+  portrait: "عمودي بارز",
+  split: "صورة ونص متوازيان",
+  editorial: "افتتاحي إبداعي",
+  minimal: "Minimal نظيف",
+};
+
+export const SITE_TEAM_CARD_STYLE_LABELS: Record<SiteTeamCardStyle, string> = {
+  photo: "صورة كبيرة",
+  classic: "كلاسيكي",
+  compact: "مضغوط",
+  featured: "مميز",
+};
+
+export type SiteTeamMember = {
+  id: string;
+  name: string;
+  slug: string;
+  role_title: SiteLocalizedString;
+  role_type: SiteTeamRoleType;
+  specialty: SiteLocalizedString;
+  bio: SiteLocalizedString;
+  long_bio: SiteLocalizedString;
+  highlight_quote: SiteLocalizedString;
+  avatar_url: string | null;
+  cover_image_url: string | null;
+  linkedin_url: string | null;
+  github_url: string | null;
+  twitter_url: string | null;
+  email: string | null;
+  website_url: string | null;
+  whatsapp: string | null;
+  skills: string[];
+  years_experience: string;
+  is_visible: boolean;
+  show_page: boolean;
+  page_template: SiteTeamPageTemplate;
+  card_style: SiteTeamCardStyle;
+  page_show_skills: boolean;
+  page_show_social: boolean;
+  page_show_quote: boolean;
+  page_show_cta: boolean;
+  page_cta_mode: SiteTeamCtaMode;
+  page_cta_label: SiteLocalizedString;
+  page_cta_url: string | null;
+  sort_order: number;
+  created_at: string;
+};
+
+export type DiagnosticFieldType =
+  | "single_choice"
+  | "multi_choice"
+  | "text"
+  | "name"
+  | "company"
+  | "email"
+  | "phone"
+  | "url";
+
+export type DiagnosticOption = {
+  id: string;
+  label: string;
+};
+
+export type DiagnosticField = {
+  id: string;
+  type: DiagnosticFieldType;
+  label: string;
+  placeholder?: string;
+  required: boolean;
+  sort_order: number;
+  options?: DiagnosticOption[];
+};
+
+export type DiagnosticStep = {
+  id: string;
+  title: string;
+  sort_order: number;
+  is_active: boolean;
+  fields: DiagnosticField[];
+};
+
+export type SiteDiagnosticSettings = {
+  badge_text: string;
+  brand_label: string;
+  headline: string;
+  subheadline: string;
+  cta_label: string;
+  cta_microcopy: string;
+  video_url: string;
+  video_poster_url: string;
+  scroll_hint: string;
+  works_eyebrow: string;
+  works_title: string;
+  works_subtitle: string;
+  works_cta_microcopy: string;
+  works_empty: string;
+  closing_title: string;
+  closing_description: string;
+  float_hint: string;
+  wizard_title: string;
+  proof_enabled: boolean;
+  proof_metric: string;
+  proof_quote: string;
+  proof_author: string;
+  thanks_title: string;
+  thanks_description: string;
+  whatsapp_phone: string;
+  whatsapp_message_template: string;
+  steps: DiagnosticStep[];
+  /** Bump when default funnel questions change; stale Firestore steps are ignored. */
+  funnel_version?: number;
+  updated_at?: string;
+};
+
+export type SiteDiagnosticLeadStatus = "new" | "contacted" | "qualified" | "closed";
+
+export type DiagnosticAnswerSnapshot = {
+  question_id: string;
+  question_text: string;
+  answer: string;
+};
+
+export type SiteDiagnosticLeadUtm = {
+  source?: string;
+  medium?: string;
+  campaign?: string;
+  term?: string;
+  content?: string;
+};
+
+export type SiteDiagnosticFunnelStatus = "in_progress" | "completed" | "left_to_idea";
+
+export type SiteDiagnosticLead = {
+  id: string;
+  name: string;
+  company: string;
+  email: string;
+  phone: string;
+  website: string;
+  answers_snapshot: DiagnosticAnswerSnapshot[];
+  status: SiteDiagnosticLeadStatus;
+  /** diagnose = قمع الشركة · idea_consult = مسار الفكرة · landing = صفحة الهبوط */
+  source: "diagnose" | "idea_consult" | "landing";
+  service?: string;
+  price_dzd?: number;
+  /** Attribution from ad landing URL (?utm_source=&utm_campaign=…) */
+  utm?: SiteDiagnosticLeadUtm;
+  /** Progress through the funnel; missing on older leads = treat as completed */
+  funnel_status?: SiteDiagnosticFunnelStatus;
+  last_step_index?: number;
+  last_step_id?: string;
+  last_step_title?: string;
+  steps_total?: number;
+  updated_at?: string;
+  /** Soft-delete: hidden from default list, recoverable */
+  archived?: boolean;
+  archived_at?: string;
+  created_at: string;
+};
