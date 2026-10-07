@@ -525,6 +525,19 @@ export type SiteDiagnosticLeadUtm = {
 
 export type SiteDiagnosticFunnelStatus = "in_progress" | "completed" | "left_to_idea";
 
+/** سجل كل تغيير حالة متابعة (تم التواصل، مؤهّل، …) */
+export type SiteDiagnosticStatusHistoryEntry = {
+  status: SiteDiagnosticLeadStatus;
+  at: string;
+};
+
+/** ملاحظة متابعة تُضاف من البطاقة أو التفاصيل */
+export type SiteDiagnosticFollowUpNote = {
+  id: string;
+  text: string;
+  created_at: string;
+};
+
 export type SiteDiagnosticLead = {
   id: string;
   name: string;
@@ -546,6 +559,16 @@ export type SiteDiagnosticLead = {
   last_step_id?: string;
   last_step_title?: string;
   steps_total?: number;
+  /** عدد مرات الاتصال المسجّلة من الزر */
+  contact_count?: number;
+  /** آخر اتصال هاتفي */
+  last_contact_at?: string;
+  /** آخر نشاط متابعة (اتصال / حالة / ملاحظة) — للتلوين بعد 24 ساعة */
+  last_activity_at?: string;
+  /** سجل تغييرات حالة المتابعة */
+  status_history?: SiteDiagnosticStatusHistoryEntry[];
+  /** ملاحظات المتابعة (الأحدث أولاً عند العرض) */
+  follow_up_notes?: SiteDiagnosticFollowUpNote[];
   updated_at?: string;
   /** Soft-delete: hidden from default list, recoverable */
   archived?: boolean;

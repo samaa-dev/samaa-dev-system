@@ -266,6 +266,33 @@ export function formatRelativeUpdatedAt(iso: string | null | undefined): string 
   return `منذ ${Math.floor(days / 365)} سنة`;
 }
 
+/** دقيقة/ساعة نسبية للمتابعة: «قبل 3 ساعات». */
+export function formatRelativeAgo(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const then = new Date(iso);
+  if (Number.isNaN(then.getTime())) return null;
+  const diffMs = Date.now() - then.getTime();
+  if (diffMs < 0) return "الآن";
+  const minutes = Math.floor(diffMs / 60_000);
+  if (minutes < 1) return "الآن";
+  if (minutes < 60) return `قبل ${minutes} دقيقة`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return hours === 1 ? "قبل ساعة" : `قبل ${hours} ساعة`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "قبل يوم";
+  if (days < 7) return `قبل ${days} أيام`;
+  if (days < 30) return `قبل ${Math.floor(days / 7)} أسابيع`;
+  return `قبل ${Math.floor(days / 30)} شهر`;
+}
+
+/** true إذا مرّت 24 ساعة أو أكثر منذ الوقت المعطى. */
+export function isOlderThan24Hours(iso: string | null | undefined): boolean {
+  if (!iso) return false;
+  const then = new Date(iso);
+  if (Number.isNaN(then.getTime())) return false;
+  return Date.now() - then.getTime() >= 86_400_000;
+}
+
 /** Arabic UI labels for sprints (shown as «الدورات» in the product). */
 export const sprintUiLabels = {
   module: "الدورات",

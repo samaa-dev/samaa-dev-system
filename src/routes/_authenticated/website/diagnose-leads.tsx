@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { doc, updateDoc } from "firebase/firestore";
+import { arrayUnion, doc, updateDoc } from "firebase/firestore";
 import { useMemo, useState } from "react";
-import { Archive, Phone, RotateCcw, Search } from "lucide-react";
+import { Archive, Minus, Phone, Plus, RotateCcw, Search } from "lucide-react";
 
 import { LandingShell } from "@/components/landing/LandingShell";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -27,19 +28,21 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCurrentUser } from "@/hooks/use-auth";
 import { getDb } from "@/integrations/firebase/client";
 import type {
+  SiteDiagnosticFollowUpNote,
   SiteDiagnosticFunnelStatus,
   SiteDiagnosticLead,
   SiteDiagnosticLeadStatus,
   SiteDiagnosticLeadUtm,
+  SiteDiagnosticStatusHistoryEntry,
 } from "@/integrations/firebase/types";
-import { nowIso, withFirebaseError } from "@/integrations/firebase/helpers";
+import { newId, nowIso, withFirebaseError } from "@/integrations/firebase/helpers";
 import { siteDiagnosticLeadsQuery } from "@/lib/data";
 import {
   SITE_DIAGNOSTIC_FUNNEL_STATUS_LABELS,
   SITE_DIAGNOSTIC_LEAD_SOURCE_LABELS,
   SITE_DIAGNOSTIC_LEAD_STATUS_LABELS,
 } from "@/lib/site-defaults";
-import { formatDate } from "@/lib/samaa";
+import { formatDateTime, formatRelativeAgo, isOlderThan24Hours } from "@/lib/samaa";
 import { cn } from "@/lib/utils";
 import {
   leadUtm,
@@ -61,6 +64,7 @@ export const Route = createFileRoute("/_authenticated/website/diagnose-leads")({
 
 type LeadSourceFilter = "all" | "diagnose" | "idea_consult" | "landing";
 type FunnelFilter = "all" | SiteDiagnosticFunnelStatus;
+type StatusFilter = "all" | SiteDiagnosticLeadStatus;
 type ArchiveFilter = "active" | "archived";
 type UtmCampaignFilter = "all" | "none" | string;
 
@@ -147,6 +151,18 @@ function LeadUtmCell({ utm, compact }: { utm: SiteDiagnosticLeadUtm | undefined;
   );
 }
 
+function activityIso(lead: SiteDiagnosticLead): string | undefined {
+  return lead.last_activity_at || lead.last_contact_at || lead.updated_at || lead.created_at;
+}
+
+function sortedNotes(notes: SiteDiagnosticFollowUpNote[] | undefined) {
+  return [...(notes ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at));
+}
+
+function sortedHistory(history: SiteDiagnosticStatusHistoryEntry[] | undefined) {
+  return [...(history ?? [])].sort((a, b) => b.at.localeCompare(a.at));
+}
+
 function CallButton({
   phone,
   className,
@@ -168,24 +184,116 @@ function CallButton({
   );
 }
 
+function ContactCountControl({
+  count,
+  onChange,
+  pending,
+}: {
+  count: number;
+  onChange: (next: number) => void;
+  pending?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-1 rounded-xl border border-border bg-muted/40 px-1.5 py-1">
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 shrink-0"
+        disabled={pending || count <= 0}
+        onClick={() => onChange(Math.max(0, count - 1))}
+        aria-label="إنقاص عدد التواصل"
+      >
+        <Minus className="h-3.5 w-3.5" />
+      </Button>
+      <div className="min-w-[4.5rem] text-center text-xs font-medium">
+        تواصل: {count}
+      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 shrink-0"
+        disabled={pending}
+        onClick={() => onChange(count + 1)}
+        aria-label="زيادة عدد التواصل"
+      >
+        <Plus className="h-3.5 w-3.5" />
+      </Button>
+    </div>
+  );
+}
+
+function NoteComposer({
+  onAdd,
+  pending,
+  compact,
+}: {
+  onAdd: (text: string) => void;
+  pending?: boolean;
+  compact?: boolean;
+}) {
+  const [noteDraft, setNoteDraft] = useState("");
+  return (
+    <div className={cn("space-y-2", compact ? "" : "rounded-xl border border-dashed border-border p-2.5")}>
+      {!compact ? (
+        <p className="text-[11px] font-medium text-muted-foreground">أضف ملاحظة</p>
+      ) : null}
+      <Textarea
+        value={noteDraft}
+        onChange={(e) => setNoteDraft(e.target.value)}
+        placeholder="أضف ملاحظة متابعة…"
+        className="min-h-[68px] resize-none text-sm"
+        rows={2}
+      />
+      <Button
+        type="button"
+        size="sm"
+        className="h-9 w-full"
+        disabled={pending || !noteDraft.trim()}
+        onClick={() => {
+          const text = noteDraft.trim();
+          if (!text) return;
+          onAdd(text);
+          setNoteDraft("");
+        }}
+      >
+        أضف ملاحظة
+      </Button>
+    </div>
+  );
+}
+
 function LeadCard({
   lead,
   onDetail,
   onArchive,
   onRestore,
   onStatus,
+  onContactCount,
+  onAddNote,
   archivePending,
+  notePending,
+  contactPending,
 }: {
   lead: SiteDiagnosticLead;
   onDetail: () => void;
   onArchive: () => void;
   onRestore: () => void;
   onStatus: (status: SiteDiagnosticLeadStatus) => void;
+  onContactCount: (count: number) => void;
+  onAddNote: (text: string) => void;
   archivePending: boolean;
+  notePending: boolean;
+  contactPending: boolean;
 }) {
   const phone = displayPhone(lead);
   const f = leadFunnel(lead);
   const src = leadSource(lead);
+  const activityAt = activityIso(lead);
+  const relative = formatRelativeAgo(activityAt);
+  const stale = isOlderThan24Hours(activityAt);
+  const contactCount = lead.contact_count ?? 0;
   const stepLabel =
     typeof lead.last_step_index === "number" && typeof lead.steps_total === "number"
       ? `${lead.last_step_index + 1}/${lead.steps_total}`
@@ -200,9 +308,22 @@ function LeadCard({
             <p className="mt-0.5 truncate text-sm text-muted-foreground">{lead.company}</p>
           ) : null}
         </div>
-        <StatusBadge tone={funnelTone(f)} className="shrink-0">
-          {SITE_DIAGNOSTIC_FUNNEL_STATUS_LABELS[f]}
-        </StatusBadge>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <StatusBadge tone={funnelTone(f)}>
+            {SITE_DIAGNOSTIC_FUNNEL_STATUS_LABELS[f]}
+          </StatusBadge>
+          {relative ? (
+            <span
+              className={cn(
+                "text-[11px] font-medium",
+                stale ? "text-destructive" : "text-muted-foreground",
+              )}
+              title={activityAt ? formatDateTime(activityAt) : undefined}
+            >
+              {relative}
+            </span>
+          ) : null}
+        </div>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-1.5">
@@ -231,12 +352,20 @@ function LeadCard({
         <p className="mt-3 text-xs text-muted-foreground">لا يوجد رقم بعد</p>
       )}
 
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-3">
+        <ContactCountControl
+          count={contactCount}
+          pending={contactPending}
+          onChange={onContactCount}
+        />
+      </div>
+
+      <div className="mt-3 flex flex-col gap-1.5">
         <Select
           value={lead.status}
           onValueChange={(v) => onStatus(v as SiteDiagnosticLeadStatus)}
         >
-          <SelectTrigger className="h-9 flex-1">
+          <SelectTrigger className="h-9 w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -249,7 +378,28 @@ function LeadCard({
             )}
           </SelectContent>
         </Select>
-        <span className="shrink-0 text-[11px] text-muted-foreground">{formatDate(lead.created_at)}</span>
+        <span className="text-[11px] text-muted-foreground">{formatDateTime(lead.created_at)}</span>
+      </div>
+
+      <div className="mt-3">
+        <NoteComposer onAdd={onAddNote} pending={notePending} />
+        <div className="mt-2 space-y-2">
+          {sortedNotes(lead.follow_up_notes).slice(0, 2).map((n) => (
+            <div key={n.id} className="rounded-lg bg-muted/40 px-2.5 py-2 text-xs">
+              <p className="whitespace-pre-wrap text-foreground">{n.text}</p>
+              <p
+                className={cn(
+                  "mt-1",
+                  isOlderThan24Hours(n.created_at) ? "text-destructive" : "text-muted-foreground",
+                )}
+              >
+                {formatRelativeAgo(n.created_at)}
+                {" · "}
+                {formatDateTime(n.created_at)}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-2">
@@ -284,14 +434,16 @@ function WebsiteDiagnoseLeadsPage() {
   const queryClient = useQueryClient();
   const leads = useQuery({ ...siteDiagnosticLeadsQuery(), enabled });
   const [archiveId, setArchiveId] = useState<string | null>(null);
-  const [detail, setDetail] = useState<SiteDiagnosticLead | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [sourceFilter, setSourceFilter] = useState<LeadSourceFilter>("landing");
   const [funnelFilter, setFunnelFilter] = useState<FunnelFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilter>("active");
   const [utmFilter, setUtmFilter] = useState<UtmCampaignFilter>("all");
   const [search, setSearch] = useState("");
 
   const allRows = leads.data ?? [];
+  const detail = detailId ? (allRows.find((l) => l.id === detailId) ?? null) : null;
   const campaigns = useMemo(() => uniqueUtmCampaigns(allRows), [allRows]);
 
   const counts = useMemo(() => {
@@ -305,6 +457,10 @@ function WebsiteDiagnoseLeadsPage() {
     let leftToIdea = 0;
     let active = 0;
     let archived = 0;
+    let statusNew = 0;
+    let statusContacted = 0;
+    let statusQualified = 0;
+    let statusClosed = 0;
     for (const l of allRows) {
       if (isArchived(l)) {
         archived += 1;
@@ -321,6 +477,10 @@ function WebsiteDiagnoseLeadsPage() {
       if (f === "in_progress") inProgress += 1;
       else if (f === "left_to_idea") leftToIdea += 1;
       else completed += 1;
+      if (l.status === "contacted") statusContacted += 1;
+      else if (l.status === "qualified") statusQualified += 1;
+      else if (l.status === "closed") statusClosed += 1;
+      else statusNew += 1;
     }
     return {
       all: active,
@@ -334,6 +494,10 @@ function WebsiteDiagnoseLeadsPage() {
       leftToIdea,
       active,
       archived,
+      statusNew,
+      statusContacted,
+      statusQualified,
+      statusClosed,
     };
   }, [allRows]);
 
@@ -343,6 +507,7 @@ function WebsiteDiagnoseLeadsPage() {
       if (archiveFilter === "archived" ? !isArchived(l) : isArchived(l)) return false;
       if (sourceFilter !== "all" && leadSource(l) !== sourceFilter) return false;
       if (funnelFilter !== "all" && leadFunnel(l) !== funnelFilter) return false;
+      if (statusFilter !== "all" && l.status !== statusFilter) return false;
       if (utmFilter === "none" && leadUtm(l)) return false;
       if (utmFilter !== "all" && utmFilter !== "none" && utmCampaignKey(l) !== utmFilter) {
         return false;
@@ -356,22 +521,83 @@ function WebsiteDiagnoseLeadsPage() {
         l.last_step_title,
         leadUtm(l)?.campaign,
         leadUtm(l)?.source,
+        ...(l.follow_up_notes ?? []).map((n) => n.text),
       ]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
       return hay.includes(q);
     });
-  }, [allRows, sourceFilter, funnelFilter, utmFilter, archiveFilter, search]);
+  }, [allRows, sourceFilter, funnelFilter, statusFilter, utmFilter, archiveFilter, search]);
+
+  const invalidateLeads = async () => {
+    await queryClient.invalidateQueries({ queryKey: ["site-diagnostic-leads"] });
+  };
 
   const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: SiteDiagnosticLeadStatus }) =>
+    mutationFn: async ({
+      id,
+      status,
+      previous,
+    }: {
+      id: string;
+      status: SiteDiagnosticLeadStatus;
+      previous: SiteDiagnosticLeadStatus;
+    }) =>
       withFirebaseError(async () => {
-        await updateDoc(doc(getDb(), "site_diagnostic_leads", id), { status });
+        if (status === previous) return;
+        const at = nowIso();
+        const entry: SiteDiagnosticStatusHistoryEntry = { status, at };
+        await updateDoc(doc(getDb(), "site_diagnostic_leads", id), {
+          status,
+          last_activity_at: at,
+          updated_at: at,
+          status_history: arrayUnion(entry),
+        });
       }),
     onSuccess: async () => {
       toast.success("تم تحديث الحالة");
-      await queryClient.invalidateQueries({ queryKey: ["site-diagnostic-leads"] });
+      await invalidateLeads();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const setContactCount = useMutation({
+    mutationFn: async ({ id, count }: { id: string; count: number }) =>
+      withFirebaseError(async () => {
+        const next = Math.max(0, Math.floor(count));
+        const at = nowIso();
+        await updateDoc(doc(getDb(), "site_diagnostic_leads", id), {
+          contact_count: next,
+          last_contact_at: next > 0 ? at : null,
+          last_activity_at: at,
+          updated_at: at,
+        });
+      }),
+    onSuccess: async () => {
+      await invalidateLeads();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const addNote = useMutation({
+    mutationFn: async ({ id, text }: { id: string; text: string }) =>
+      withFirebaseError(async () => {
+        const at = nowIso();
+        const note: SiteDiagnosticFollowUpNote = {
+          id: newId(),
+          text,
+          created_at: at,
+        };
+        await updateDoc(doc(getDb(), "site_diagnostic_leads", id), {
+          follow_up_notes: arrayUnion(note),
+          last_activity_at: at,
+          updated_at: at,
+        });
+      }),
+    onSuccess: async () => {
+      toast.success("تم حفظ الملاحظة");
+      await invalidateLeads();
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -388,7 +614,7 @@ function WebsiteDiagnoseLeadsPage() {
     onSuccess: async (_d, vars) => {
       toast.success(vars.archived ? "تمت الأرشفة" : "تمت الاستعادة من الأرشيف");
       setArchiveId(null);
-      await queryClient.invalidateQueries({ queryKey: ["site-diagnostic-leads"] });
+      await invalidateLeads();
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -396,27 +622,30 @@ function WebsiteDiagnoseLeadsPage() {
   const emptyByFilter =
     archiveFilter === "archived"
       ? "لا توجد طلبات مؤرشفة."
-      : funnelFilter !== "all"
-        ? "لا توجد طلبات لهذا فلتر الاكتمال."
-        : utmFilter !== "all"
-          ? "لا توجد طلبات لهذه الحملة / الفلتر."
-          : sourceFilter === "idea_consult"
-            ? "لا توجد طلبات استشارة أفكار بعد."
-            : sourceFilter === "landing"
-              ? "لا توجد طلبات من صفحة الهبوط بعد."
-              : sourceFilter === "diagnose"
-                ? "لا توجد طلبات تشخيص شركات بعد."
-                : "لا توجد طلبات بعد.";
+      : statusFilter !== "all"
+        ? "لا توجد طلبات لهذه الحالة."
+        : funnelFilter !== "all"
+          ? "لا توجد طلبات لهذا فلتر الاكتمال."
+          : utmFilter !== "all"
+            ? "لا توجد طلبات لهذه الحملة / الفلتر."
+            : sourceFilter === "idea_consult"
+              ? "لا توجد طلبات استشارة أفكار بعد."
+              : sourceFilter === "landing"
+                ? "لا توجد طلبات من صفحة الهبوط بعد."
+                : sourceFilter === "diagnose"
+                  ? "لا توجد طلبات تشخيص شركات بعد."
+                  : "لا توجد طلبات بعد.";
 
   const detailUtm = detail ? leadUtm(detail) : undefined;
   const detailPhone = detail ? displayPhone(detail) : "";
+  const detailActivity = detail ? activityIso(detail) : undefined;
   const archiveTarget = archiveId ? allRows.find((l) => l.id === archiveId) : null;
   const confirmingArchive = archiveTarget ? !isArchived(archiveTarget) : true;
 
   return (
     <LandingShell
       title="طلبات الحجز"
-      description="طلبات قمع صفحة الهبوط ومسار الفكرة — اتصل مباشرة أو أرشف لاحقاً"
+      description="متابعة الطلبات: عدد الاتصالات، ملاحظات سريعة، وسجل الحالات — يتحوّل الوقت للأحمر بعد 24 ساعة"
     >
       <div className="mb-4 space-y-3">
         <Tabs value={archiveFilter} onValueChange={(v) => setArchiveFilter(v as ArchiveFilter)}>
@@ -455,7 +684,28 @@ function WebsiteDiagnoseLeadsPage() {
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+            <SelectTrigger className="h-11 w-full">
+              <SelectValue placeholder="حالة المتابعة" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">كل الحالات</SelectItem>
+              <SelectItem value="new">
+                {SITE_DIAGNOSTIC_LEAD_STATUS_LABELS.new} ({counts.statusNew})
+              </SelectItem>
+              <SelectItem value="contacted">
+                {SITE_DIAGNOSTIC_LEAD_STATUS_LABELS.contacted} ({counts.statusContacted})
+              </SelectItem>
+              <SelectItem value="qualified">
+                {SITE_DIAGNOSTIC_LEAD_STATUS_LABELS.qualified} ({counts.statusQualified})
+              </SelectItem>
+              <SelectItem value="closed">
+                {SITE_DIAGNOSTIC_LEAD_STATUS_LABELS.closed} ({counts.statusClosed})
+              </SelectItem>
+            </SelectContent>
+          </Select>
+
           <Select value={funnelFilter} onValueChange={(v) => setFunnelFilter(v as FunnelFilter)}>
             <SelectTrigger className="h-11 w-full">
               <SelectValue placeholder="اكتمال القمع" />
@@ -522,10 +772,16 @@ function WebsiteDiagnoseLeadsPage() {
               key={l.id}
               lead={l}
               archivePending={setArchived.isPending}
-              onDetail={() => setDetail(l)}
+              notePending={addNote.isPending}
+              contactPending={setContactCount.isPending}
+              onDetail={() => setDetailId(l.id)}
               onArchive={() => setArchiveId(l.id)}
               onRestore={() => setArchived.mutate({ id: l.id, archived: false })}
-              onStatus={(status) => updateStatus.mutate({ id: l.id, status })}
+              onStatus={(status) =>
+                updateStatus.mutate({ id: l.id, status, previous: l.status })
+              }
+              onContactCount={(count) => setContactCount.mutate({ id: l.id, count })}
+              onAddNote={(text) => addNote.mutate({ id: l.id, text })}
             />
           ))}
         </div>
@@ -549,7 +805,7 @@ function WebsiteDiagnoseLeadsPage() {
         pending={setArchived.isPending}
       />
 
-      <Dialog open={Boolean(detail)} onOpenChange={(o) => !o && setDetail(null)}>
+      <Dialog open={Boolean(detail)} onOpenChange={(o) => !o && setDetailId(null)}>
         <DialogContent className="max-h-[90dvh] gap-0 overflow-hidden p-0 sm:max-w-lg">
           <DialogHeader className="border-b border-border px-4 py-4 sm:px-6">
             <DialogTitle className="text-start text-base sm:text-lg">
@@ -567,6 +823,20 @@ function WebsiteDiagnoseLeadsPage() {
                     <p className="truncate font-medium tracking-wide" dir="ltr">
                       {detailPhone}
                     </p>
+                    {detailActivity ? (
+                      <p
+                        className={cn(
+                          "mt-1 text-[11px]",
+                          isOlderThan24Hours(detailActivity)
+                            ? "font-medium text-destructive"
+                            : "text-muted-foreground",
+                        )}
+                      >
+                        آخر نشاط {formatRelativeAgo(detailActivity)}
+                        {" · "}
+                        {formatDateTime(detailActivity)}
+                      </p>
+                    ) : null}
                   </div>
                   <CallButton phone={detailPhone} size="lg" className="h-11 shrink-0 px-5" />
                 </div>
@@ -593,6 +863,90 @@ function WebsiteDiagnoseLeadsPage() {
                       : ""}
                   </p>
                 ) : null}
+                <div className="mt-3">
+                  <ContactCountControl
+                    count={detail.contact_count ?? 0}
+                    pending={setContactCount.isPending}
+                    onChange={(count) => setContactCount.mutate({ id: detail.id, count })}
+                  />
+                </div>
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  تاريخ الطلب: {formatDateTime(detail.created_at)}
+                </p>
+              </div>
+            ) : null}
+
+            {detail ? (
+              <div className="rounded-xl border border-border p-3">
+                <div className="mb-2 text-xs font-medium text-muted-foreground">
+                  سجل الحالات
+                </div>
+                {sortedHistory(detail.status_history).length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    لا يوجد سجل بعد — أي تغيير حالة (تم التواصل، مؤهّل، …) يُحفظ هنا.
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {sortedHistory(detail.status_history).map((h, i) => (
+                      <li
+                        key={`${h.status}-${h.at}-${i}`}
+                        className="flex flex-col gap-1 border-b border-border/60 pb-2 last:border-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <StatusBadge tone={toneFor(h.status)}>
+                          {SITE_DIAGNOSTIC_LEAD_STATUS_LABELS[h.status] ?? h.status}
+                        </StatusBadge>
+                        <span
+                          className={cn(
+                            "text-[11px]",
+                            isOlderThan24Hours(h.at)
+                              ? "font-medium text-destructive"
+                              : "text-muted-foreground",
+                          )}
+                        >
+                          {formatRelativeAgo(h.at)}
+                          {" · "}
+                          {formatDateTime(h.at)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : null}
+
+            {detail ? (
+              <div className="rounded-xl border border-border p-3">
+                <div className="mb-2 text-xs font-medium text-muted-foreground">
+                  ملاحظات المتابعة
+                </div>
+                <NoteComposer
+                  compact
+                  pending={addNote.isPending}
+                  onAdd={(text) => addNote.mutate({ id: detail.id, text })}
+                />
+                {sortedNotes(detail.follow_up_notes).length === 0 ? (
+                  <p className="mt-2 text-xs text-muted-foreground">لا توجد ملاحظات بعد.</p>
+                ) : (
+                  <ul className="mt-3 space-y-2">
+                    {sortedNotes(detail.follow_up_notes).map((n) => (
+                      <li key={n.id} className="rounded-lg bg-muted/40 px-2.5 py-2">
+                        <p className="whitespace-pre-wrap text-foreground">{n.text}</p>
+                        <p
+                          className={cn(
+                            "mt-1 text-[11px]",
+                            isOlderThan24Hours(n.created_at)
+                              ? "font-medium text-destructive"
+                              : "text-muted-foreground",
+                          )}
+                        >
+                          {formatRelativeAgo(n.created_at)}
+                          {" · "}
+                          {formatDateTime(n.created_at)}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             ) : null}
 
